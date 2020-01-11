@@ -180,7 +180,9 @@ class DecorSprites(pygame.sprite.Sprite):
     sprites = [load_image('small_cloud.png'),
                load_image('small_grass.png', -1),
                load_image('big_grass.png', -1),
-               load_image('light_big_grass.png', -1)]
+               load_image('light_big_grass.png', -1),
+               load_image('light_small_grass.png', -1),
+               load_image('light_middle_grass.png', -1)]
 
     def __init__(self, image_type, x, y):
         super().__init__(decoration)
@@ -242,8 +244,14 @@ def generate_level(level):
                 AllBlocks('stair_block.png', x, y)
             elif level[y][x] == 'c':
                 DecorSprites(0, x, y)
-            # elif level[y][x] == 'r':
-            #     DecorSprites(2, x, y)
+            elif level[y][x] == 'r':
+                DecorSprites(2, x, y)
+            elif level[y][x] == 'p':
+                DecorSprites(3, x, y)
+            elif level[y][x] == 'a':
+                DecorSprites(1, x, y)
+            elif level[y][x] == 'w':
+                DecorSprites(4, x, y)
             elif level[y][x] == '@':
                 new_player = Mario(x, y)
     return new_player, x, y
@@ -266,8 +274,6 @@ sky_color = (147, 147, 254)
 
 # Mario = Mario(42 * SCALE_D, 193 * SCALE_D, 10 * SCALE_D, 15 * SCALE_D)
 
-
-
 # ground_group = pygame.sprite.Group()
 # for i in range(0, int((1104 + 16) * SCALE_D), int(16 * SCALE_D)):
 #     for j in range(int(208 * SCALE_D), int((239 + 16) * SCALE_D), int(16 * SCALE_D)):
@@ -285,9 +291,9 @@ while running:
 
     screen.fill(sky_color)
 
+    decoration.draw(screen)
     surfaces2.draw(screen)
     heroes.draw(screen)
-    decoration.draw(screen)
 
     # Mario.render(screen)
 
@@ -316,9 +322,9 @@ while running:
                 if Mario.speed_x > 0:
                     Mario.speed_x = 0
 
+    decoration.update()
     surfaces2.update()
     heroes.update()
-    decoration.update()
     pygame.display.flip()
 
     clock.tick(FPS)

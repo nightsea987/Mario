@@ -8,7 +8,7 @@
                 q   bqbqb                                                   bqb               b      bb    q  q  q     b         bb     s  s                      bbqb           ssssss
                                               b          b                                                                             ss  ss      s  s                         sssssss
                                      b        b          b                                                                            sss  sss    ss  ss                       ssssssss        s
-r  @                        b        b        b          b                                                                           ssss  ssss  sss  ssss    b              bsssssssss        s   b
+r  @       p    a      w    b        b u      br         bp    a       w                u       r           p    a       w           ssss  ssssa sss  ssss a  b  w           bsssssssss  r     s   b       a
 gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg  ggggggggggggggg   gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg  ggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
 gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg  ggggggggggggggg   gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg  ggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
 gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg  ggggggggggggggg   gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg  ggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
