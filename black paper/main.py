@@ -38,7 +38,8 @@ class Mario(pygame.sprite.Sprite):
 
     def __init__(self, x, y, image_name, w=16, h=16):
         super().__init__(heroes)
-        self.image = pygame.transform.scale(Mario.images[image_name], (w * SCALE_D, h * SCALE_D))
+        w = 12
+        self.image = pygame.transform.scale(Mario.images[image_name], (int(w * SCALE_D), int(h * SCALE_D)))
 
         self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
         self.pos_x, self.pos_y = x, y
@@ -46,7 +47,6 @@ class Mario(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(self.tile_width * self.pos_x, self.tile_height * self.pos_y)
 
         # print(id(self.rect) == id(self.image.get_rect()))
-
 
         self.maygo_left = True
         self.maygo_right = True
@@ -113,11 +113,11 @@ class DecorSprites(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = x, y
         self.image1 = DecorSprites.sprites[image_type]
         self.image = pygame.transform.scale(self.image1,
-                                            (self.image1.get_width() * 3,
-                                             self.image1.get_height() * 3))
+                                            (int(self.image1.get_width() * SCALE_D),
+                                             int(self.image1.get_height() * SCALE_D)))
         self.rect = self.image.get_rect().move(
             BLOCK_SIZE * self.pos_x,
-            BLOCK_SIZE * self.pos_y - (self.image1.get_height() * 3 - BLOCK_SIZE))
+            BLOCK_SIZE * self.pos_y - (self.image1.get_height() * SCALE_D - BLOCK_SIZE))
 
     def update(self):
         # self.rect.x = self.pos_x - SCR_X
@@ -128,7 +128,7 @@ class DecorSprites(pygame.sprite.Sprite):
 class AllBlocks(pygame.sprite.Sprite):
     def __init__(self, image, x, y, w=16, h=16):
         super().__init__(surfaces2)
-        self.image = pygame.transform.scale(load_image(image), (w * SCALE_D, h * SCALE_D))
+        self.image = pygame.transform.scale(load_image(image), (int(w * SCALE_D), int(h * SCALE_D)))
         self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
         self.pos_x, self.pos_y = x, y
         self.rect = self.image.get_rect().move(self.tile_width * self.pos_x,
@@ -139,12 +139,6 @@ class AllBlocks(pygame.sprite.Sprite):
         # self.rect.y = self.pos_y
         # print(self.rect.x, self.rect.y)
         pass
-
-
-# --------------------------SOUNDS-------------------------------------
-# pygame.mixer.music.load('../sounds/main_theme.mp3')
-# pygame.mixer.music.play()
-sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 
 
 class Camera:
@@ -159,6 +153,11 @@ class Camera:
     def update(self, target):
         self.dx = -(target.rect.x + target.rect.w // 2 - 8 * WIDTH // 27)
 
+
+# --------------------------SOUNDS-------------------------------------
+# pygame.mixer.music.load('../sounds/main_theme.mp3')
+# pygame.mixer.music.play()
+sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 
 
 def generate_level(level):
@@ -190,7 +189,7 @@ def generate_level(level):
 
 clock = pygame.time.Clock()
 FPS = 60
-SCALE_D = 3
+SCALE_D = 2.5
 
 BLOCK_SIZE = 16 * SCALE_D
 
@@ -203,8 +202,8 @@ camera = Camera()
 camera.update(mario)
 
 
-BASEMARIOSPEED = 120 * SCALE_D
-MARIOJUMPSPEED = 400 * SCALE_D
+BASEMARIOSPEED = 110 * SCALE_D
+MARIOJUMPSPEED = 410 * SCALE_D
 
 sky_color = (147, 147, 254)
 
@@ -233,6 +232,7 @@ while running:
                 mario.speed_x = BASEMARIOSPEED / FPS
             elif event.key == 273 and mario.speed_y == 1:
                 mario.speed_y = - MARIOJUMPSPEED / FPS
+                sound_jump.play()
 
         elif event.type == pygame.KEYUP:
             if event.key == 276 and mario.speed_x < 0:
@@ -246,5 +246,5 @@ while running:
     pygame.display.flip()
 
     clock.tick(FPS)
-
 pygame.quit()
+
