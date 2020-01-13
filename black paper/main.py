@@ -1,19 +1,14 @@
 import pygame
 import os
-from maps.map_1 import surfaces
-
-from pygame.examples.eventlist import main
-# main()
 os.chdir('../sprites')
-SCALE_D = 3
-SCR_X = 0
-SCR_Y = 150
 
-BLOCK_SIZE = 48
+pygame.init()
+pygame.mixer.init()
 
-surfaces2 = pygame.sprite.Group()
-heroes = pygame.sprite.Group()
-decoration = pygame.sprite.Group()
+size = WIDTH, HEIGHT = 800, 630
+TILE_WIDTH, TILE_HEIGHT = 16, 16
+
+screen = pygame.display.set_mode(size)
 
 
 def load_image(name, colorkey=None):
@@ -36,147 +31,75 @@ def load_level(filename):
     return list(map(lambda x: x.ljust(max_width, ' '), level_map))
 
 
-def is_intersect(self, surface):
-    left1, up1, right1, down1, left2, up2, right2, down2 = self.left, self.up, self.right, self.down, surface.left, surface.up, surface.right, surface.down
-    return right1 > left2 and left1 < right2 and up1 < down2 and down1 > up2
-
-
 class Mario(pygame.sprite.Sprite):
-    image = load_image('small_mario_stand.png', -1)
+    images = {
+        "Mario": load_image('small_mario_stand.png', -1)
+    }
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, image_name, w=16, h=16):
         super().__init__(heroes)
-        self.image = pygame.transform.scale(Mario.image, (48, 48))
-        self.tile_width, self.tile_height = 48, 48
+        self.image = pygame.transform.scale(Mario.images[image_name], (w * SCALE_D, h * SCALE_D))
+
+        self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
         self.pos_x, self.pos_y = x, y
-        self.speed_x = 0
-        self.speed_y = 0
+
         self.rect = self.image.get_rect().move(self.tile_width * self.pos_x, self.tile_height * self.pos_y)
-        self.a_y = 0
 
-    def move(self):
-        # self.check_possible_moves_x()
-        # if self.speed_x < 0 and self.maygo_left or self.speed_x > 0 and self.maygo_right:
-        #     self.x += self.speed_x
+        # print(id(self.rect) == id(self.image.get_rect()))
 
-        if not pygame.sprite.spritecollideany(self, surfaces2):
-            self.pos_x += self.speed_x
-            self.pos_y += self.speed_y
-
-    def change_speed(self):
-        # self.check_possible_moves_x()
-        # self.check_possible_moves_y()
-        if not pygame.sprite.spritecollideany(self, surfaces2):
-            self.a_y = (40 * 40 / (FPS ** 2)) * SCALE_D
-            self.speed_y += self.a_y
-        else:
-            self.a_y = 0
-            if self.speed_y > 0:
-                self.speed_y = 1
-
-
-class Unit:
-    def __init__(self, x, y, width = 20, height=30):
-        self.pos = self.x, self.y = x, y
-        self.width = width
-        self.height = height
-        self.left = self.x
-        self.right = self.x + self.width
-        self.up = self.y
-        self.down = self.y + self.height
 
         self.maygo_left = True
         self.maygo_right = True
         self.maygo_up = True
         self.maygo_down = True
-        self.check_possible_moves_x()
-        self.check_possible_moves_y()
 
         self.speed_x = 0
         self.speed_y = 0
-        self.body_color = pygame.Color("red")
+        self.check_possible_moves_x()
+        self.check_possible_moves_y()
         self.on_ground = False
         self.a_y = 0
 
-    def set_pos(self, x, y):
-        self.pos = self.x, self.y = x, y
-        self.set_borders()
-
-    def set_borders(self):
-        self.pos = self.x, self.y
-        self.left = self.x
-        self.right = self.x + self.width
-        self.up = self.y
-        self.down = self.y + self.height
+    # def update_coords(self):
+    #
 
     def move(self):
-        # self.check_possible_moves_x()
-        # if self.speed_x < 0 and self.maygo_left or self.speed_x > 0 and self.maygo_right:
-        #     self.x += self.speed_x
-        self.x += self.speed_x
-        self.set_borders()
+        self.rect.x += self.speed_x
         self.check_possible_moves_x()
 
-        # self.check_possible_moves_y()
-        # if self.speed_y < 0 and self.maygo_up or self.speed_y > 0 and self.maygo_down:
-        self.y += self.speed_y
-        self.set_borders()
+        self.rect.y += self.speed_y
         self.check_possible_moves_y()
 
-    def render(self, screen):
-        global SCR_X, SCR_Y
-        rect = pygame.Rect(
-            int(self.x - SCR_X),
-            int(self.y - SCR_Y),
-            self.width,
-            self.height,
-        )
-        pygame.draw.rect(screen, self.body_color, rect)
-
-    def change_speed(self):
-        # self.check_possible_moves_x()
-        # self.check_possible_moves_y()
-        if self.maygo_down:
-            self.a_y = (40 * 40 / (FPS ** 2)) * SCALE_D
-            self.speed_y += self.a_y
-        else:
-            self.a_y = 0
-            if self.speed_y > 0:
-                self.speed_y = 1
-
     def check_possible_moves_x(self):
-        self.maygo_left, self.maygo_right = True, True
-        for surface in surfaces:
-            if is_intersect(self, surface):
+        self.maygo_right, self.maygo_left = False, False
+
+        for sprite in surfaces2:
+            if self.rect.colliderect(sprite.rect):
                 if self.speed_x > 0:
                     self.maygo_right = False
-                    self.x = surface.left - self.width
-                    # self.x -= self.speed_x
+                    self.rect.x = sprite.rect.x - self.rect.width
                 elif self.speed_x < 0:
                     self.maygo_left = False
-                    self.x = surface.right
-                    # self.x -= self.speed_x
-                self.set_borders()
-
+                    self.rect.x = sprite.rect.x + sprite.rect.width
 
     def check_possible_moves_y(self):
-        self.maygo_up, self.maygo_down = True, True
-        for surface in surfaces:
-            if is_intersect(self, surface):
+        self.maygo_up, self.maygo_down = False, False
+        for sprite in surfaces2:
+            if self.rect.colliderect(sprite.rect):
                 if self.speed_y > 0:
                     self.maygo_down = False
-                    self.y = surface.up - self.height
-                    # self.y -= self.speed_y
-                elif self.speed_y < 0:
+                    self.speed_y = 1
+                    self.rect.y = sprite.rect.y - self.rect.height
+                if self.speed_y < 0:
                     self.maygo_up = False
                     self.speed_y = 1
-                    self.y = surface.down
-                    # self.y -= self.speed_y
-                self.set_borders()
+                    self.rect.y = sprite.rect.y + sprite.rect.height
+
+    def accelerate(self):
+        self.speed_y += 55 / FPS
 
 
 class DecorSprites(pygame.sprite.Sprite):
-
     sprites = [load_image('small_cloud.png'),
                load_image('small_grass.png', -1),
                load_image('big_grass.png', -1),
@@ -203,14 +126,13 @@ class DecorSprites(pygame.sprite.Sprite):
 
 
 class AllBlocks(pygame.sprite.Sprite):
-    def __init__(self, image, x, y):
+    def __init__(self, image, x, y, w=16, h=16):
         super().__init__(surfaces2)
-        self.image = pygame.transform.scale(load_image(image), (48, 48))
-        self.tile_width, self.tile_height = 48, 48
+        self.image = pygame.transform.scale(load_image(image), (w * SCALE_D, h * SCALE_D))
+        self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
         self.pos_x, self.pos_y = x, y
-        self.rect = self.image.get_rect().move(self.tile_width * (self.pos_x),
-                                               self.tile_height * (self.pos_y))
-        # print(self.pos_x * self.tile_width, self.tile_height * (self.pos_y))
+        self.rect = self.image.get_rect().move(self.tile_width * self.pos_x,
+                                               self.tile_height * self.pos_y)
 
     def update(self):
         # self.rect.x = self.pos_x
@@ -219,12 +141,7 @@ class AllBlocks(pygame.sprite.Sprite):
         pass
 
 
-
-
-pygame.init()
-pygame.mixer.init()
-
-#--------------------------SOUNDS-------------------------------------
+# --------------------------SOUNDS-------------------------------------
 # pygame.mixer.music.load('../sounds/main_theme.mp3')
 # pygame.mixer.music.play()
 sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
@@ -253,74 +170,54 @@ def generate_level(level):
             elif level[y][x] == 'w':
                 DecorSprites(4, x, y)
             elif level[y][x] == '@':
-                new_player = Mario(x, y)
+                new_player = Mario(x, y, "Mario")
     return new_player, x, y
 
 
-
-Mario, level_x, level_y = generate_level(load_level('map1.txt'))
-
-size = WIDTH, HEIGHT = 800, 630
-FPS = 60
-
-BASEMARIOSPEED = 150 * SCALE_D
-MARIOJUMPSPEED = 450 * SCALE_D
-
-screen = pygame.display.set_mode(size)
-
-
 clock = pygame.time.Clock()
+FPS = 60
+SCALE_D = 3
+
+BLOCK_SIZE = 16 * SCALE_D
+
+surfaces2 = pygame.sprite.Group()
+heroes = pygame.sprite.Group()
+decoration = pygame.sprite.Group()
+
+mario, level_x, level_y = generate_level(load_level('map1.txt'))
+
+
+BASEMARIOSPEED = 120 * SCALE_D
+MARIOJUMPSPEED = 400 * SCALE_D
+
 sky_color = (147, 147, 254)
-
-# Mario = Mario(42 * SCALE_D, 193 * SCALE_D, 10 * SCALE_D, 15 * SCALE_D)
-
-# ground_group = pygame.sprite.Group()
-# for i in range(0, int((1104 + 16) * SCALE_D), int(16 * SCALE_D)):
-#     for j in range(int(208 * SCALE_D), int((239 + 16) * SCALE_D), int(16 * SCALE_D)):
-#         ground_block = AllBlocks(surfaces2, load_image('ground.png'), i, j)
-#         surfaces2.add(ground_block)
-
 
 running = True
 while running:
-    # Mario.check_possible_moves_y()
-    # Mario.check_possible_moves_x()
-    Mario.move()
-    SCR_X = (Mario.rect.x - 150)
-    Mario.change_speed()
+    mario.accelerate()
+    mario.move()
 
     screen.fill(sky_color)
-
     decoration.draw(screen)
     surfaces2.draw(screen)
     heroes.draw(screen)
 
-    # Mario.render(screen)
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        # moving left-right
-        if event.type == pygame.KEYDOWN:
+        elif event.type == pygame.KEYDOWN:
             if event.key == 276:
-                Mario.rect.x += -BASEMARIOSPEED / FPS
-                print(Mario.speed_x)
+                mario.speed_x = - BASEMARIOSPEED / FPS
             elif event.key == 275:
-                Mario.rect.x += BASEMARIOSPEED / FPS
+                mario.speed_x = BASEMARIOSPEED / FPS
+            elif event.key == 273 and mario.speed_y == 1:
+                mario.speed_y = - MARIOJUMPSPEED / FPS
 
-            elif event.key == 273:
-                if Mario.maygo_up and not Mario.maygo_down:
-                    Mario.speed_y = -MARIOJUMPSPEED / FPS
-                    sound_jump.play()
-
-                    # Mario.maygo_down = True
         elif event.type == pygame.KEYUP:
-            if event.key == 276:
-                if Mario.speed_x < 0:
-                    Mario.speed_x = 0
-            elif event.key == 275:
-                if Mario.speed_x > 0:
-                    Mario.speed_x = 0
+            if event.key == 276 and mario.speed_x < 0:
+                mario.speed_x = 0
+            elif event.key == 275 and mario.speed_x > 0:
+                mario.speed_x = 0
 
     decoration.update()
     surfaces2.update()
