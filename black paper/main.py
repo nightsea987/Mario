@@ -147,6 +147,20 @@ class AllBlocks(pygame.sprite.Sprite):
 sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 
 
+class Camera:
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
+
+    def apply(self, obj):
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
+
+    def update(self, target):
+        self.dx = -(target.rect.x + target.rect.w // 2 - 8 * WIDTH // 27)
+
+
+
 def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
@@ -185,6 +199,8 @@ heroes = pygame.sprite.Group()
 decoration = pygame.sprite.Group()
 
 mario, level_x, level_y = generate_level(load_level('map1.txt'))
+camera = Camera()
+camera.update(mario)
 
 
 BASEMARIOSPEED = 120 * SCALE_D
@@ -196,6 +212,11 @@ running = True
 while running:
     mario.accelerate()
     mario.move()
+
+    camera.update(mario)
+    for group in [decoration, surfaces2, heroes]:
+        for sprite in group:
+            camera.apply(sprite)
 
     screen.fill(sky_color)
     decoration.draw(screen)
@@ -225,4 +246,5 @@ while running:
     pygame.display.flip()
 
     clock.tick(FPS)
+
 pygame.quit()
