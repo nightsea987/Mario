@@ -1,5 +1,6 @@
 import pygame
 import os
+import pyganim
 os.chdir('../sprites')
 
 pygame.init()
@@ -35,6 +36,21 @@ class Mario(pygame.sprite.Sprite):
     images = {
         "Mario": load_image('small_mario_stand.png', -1)
     }
+    ANIMATION_DELAY = 0.1  # скорость смены кадров
+    ANIMATION_SMALL_RIGHT = [('mario/r1.png'),
+                       ('mario/r2.png'),
+                       ('mario/r3.png'),
+                       ('mario/r4.png'),
+                       ('mario/r5.png')]
+    ANIMATION_SMALL_LEFT = [('mario/l1.png'),
+                      ('mario/l2.png'),
+                      ('mario/l3.png'),
+                      ('mario/l4.png'),
+                      ('mario/l5.png')]
+    # ANIMATION_JUMP_LEFT = [('mario/jl.png', 0.1)]
+    # ANIMATION_JUMP_RIGHT = [('mario/jr.png', 0.1)]
+    ANIMATION_SMALL_JUMP = [('small_mario_jump.png', 0.1)]
+    ANIMATION_SMALL_STAY = [('small_mario_stand.png', 0.1)]
 
     def __init__(self, x, y, image_name, w=16, h=16):
         super().__init__(heroes)
@@ -141,6 +157,30 @@ class AllBlocks(pygame.sprite.Sprite):
         pass
 
 
+class QBlock(pygame.sprite.Sprite):
+    ANIMATION_DELAY = 1  # скорость смены кадров
+    ANIMATION_QBLOCK = [('q_block.png'),
+                        ('q_block2.png'),
+                        ('q_block3.png'),
+                        ('q_block2.png')]
+    def __init__(self, x, y, w=16, h=16):
+        super().__init__(surfaces2)
+        self.image = pygame.transform.scale(load_image(QBlock.ANIMATION_QBLOCK[0]), (int(w * SCALE_D), int(h * SCALE_D)))
+        self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
+        self.pos_x, self.pos_y = x, y
+        self.rect = self.image.get_rect().move(self.tile_width * self.pos_x,
+                                               self.tile_height * self.pos_y)
+        boltAnim = []
+        for anim in QBlock.ANIMATION_QBLOCK:
+            boltAnim.append((load_image(anim, -1), float(QBlock.ANIMATION_DELAY)))
+        self.boltAnimQ = pyganim.PygAnimation(boltAnim)
+        self.boltAnimQ.play()
+
+    def update(self):
+        self.image.fill(sky_color)
+        self.boltAnimQ.blit(self.image, (0, 0))
+
+
 class Camera:
     def __init__(self):
         self.dx = 0
@@ -155,10 +195,11 @@ class Camera:
 
 
 # --------------------------SOUNDS-------------------------------------
-# pygame.mixer.music.load('../sounds/main_theme.mp3')
-# pygame.mixer.music.play()
+pygame.mixer.music.load('../sounds/main_theme.mp3')
+pygame.mixer.music.play()
 sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 
+tube_count = 0
 
 def generate_level(level):
     new_player, x, y = None, None, None
@@ -169,9 +210,17 @@ def generate_level(level):
             elif level[y][x] == 'b':
                 AllBlocks('block.png', x, y)
             elif level[y][x] == 'q':
-                AllBlocks('q_block.png', x, y)
+                QBlock(x, y)
             elif level[y][x] == 's':
                 AllBlocks('stair_block.png', x, y)
+            elif level[y][x] == '!':
+                if level[y + 1][x] == '!' and level[y - 1][x] != '!' and level[y + 2][x] != '!':
+                    AllBlocks('middle_tube.png', x, y - 1, 32, 48)
+                elif level[y + 1][x] != '!' and level[y - 1][x] != '!' and level[y - 2][x] != '!':
+                    AllBlocks('small_tube.png', x, y - 1, 32, 32)
+                elif level[y + 1][x] == '!' and level[y + 2][x] == '!':
+                    AllBlocks('big_tube.png', x, y - 1, 32, 64)
+
             elif level[y][x] == 'c':
                 DecorSprites(0, x, y)
             elif level[y][x] == 'r':
@@ -206,11 +255,13 @@ BASEMARIOSPEED = 110 * SCALE_D
 MARIOJUMPSPEED = 410 * SCALE_D
 
 sky_color = (147, 147, 254)
+count = 0
 
 running = True
 while running:
     mario.accelerate()
     mario.move()
+    count += 1
 
     camera.update(mario)
     for group in [decoration, surfaces2, heroes]:
@@ -241,10 +292,10 @@ while running:
                 mario.speed_x = 0
 
     decoration.update()
-    surfaces2.update()
+    if count % 10 == 0:
+        surfaces2.update()
     heroes.update()
     pygame.display.flip()
 
     clock.tick(FPS)
 pygame.quit()
-
