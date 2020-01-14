@@ -106,13 +106,26 @@ class Mario(pygame.sprite.Sprite):
                     self.maygo_down = False
                     self.speed_y = 1
                     self.rect.y = sprite.rect.y - self.rect.height
+                    if type(sprite) == Enemy:
+                        self.hit(sprite)
                 if self.speed_y < 0:
                     self.maygo_up = False
                     self.speed_y = 1
                     self.rect.y = sprite.rect.y + sprite.rect.height
+                    if type(sprite) == AllBlocks:
+                        self.hit(sprite)
 
     def accelerate(self):
         self.speed_y += 55 / FPS
+
+    def hit(self, obj):
+        obj.hitted()
+
+
+class Enemy:
+    def hitted(self):
+        print('YOU KILLED ME, MURDERER')
+        del self
 
 
 class DecorSprites(pygame.sprite.Sprite):
@@ -156,6 +169,9 @@ class AllBlocks(pygame.sprite.Sprite):
         # print(self.rect.x, self.rect.y)
         pass
 
+    def hitted(self):
+        print("Oh fuck.. I cant believe you done this")
+
 
 class QBlock(pygame.sprite.Sprite):
     ANIMATION_DELAY = 1  # скорость смены кадров
@@ -183,12 +199,14 @@ class QBlock(pygame.sprite.Sprite):
 
 class Camera:
     def __init__(self):
-        self.dx = 0
+        self.dx = 0 * SCALE_D
         self.dy = 0
 
     def apply(self, obj):
         obj.rect.x += self.dx
         obj.rect.y += self.dy
+        # self.dx = 0
+        # self.dy = 0
 
     def update(self, target):
         self.dx = -(target.rect.x + target.rect.w // 2 - 8 * WIDTH // 27)
@@ -201,6 +219,7 @@ sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 
 tube_count = 0
 
+this_list_is_necessary_for_camera = []
 def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
@@ -224,7 +243,7 @@ def generate_level(level):
             elif level[y][x] == 'c':
                 DecorSprites(0, x, y)
             elif level[y][x] == 'r':
-                DecorSprites(2, x, y)
+                this_list_is_necessary_for_camera.append(DecorSprites(2, x, y))
             elif level[y][x] == 'p':
                 DecorSprites(3, x, y)
             elif level[y][x] == 'a':
@@ -248,7 +267,7 @@ decoration = pygame.sprite.Group()
 
 mario, level_x, level_y = generate_level(load_level('map1.txt'))
 camera = Camera()
-camera.update(mario)
+# camera.update(mario)
 
 
 BASEMARIOSPEED = 110 * SCALE_D
@@ -263,7 +282,11 @@ while running:
     mario.move()
     count += 1
 
-    camera.update(mario)
+    if mario.rect.x > this_list_is_necessary_for_camera[0].rect.x + 222:
+        camera.update(mario)
+    else:
+        camera.dx = 0
+
     for group in [decoration, surfaces2, heroes]:
         for sprite in group:
             camera.apply(sprite)
