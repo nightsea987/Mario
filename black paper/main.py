@@ -81,7 +81,10 @@ class Mario(pygame.sprite.Sprite):
 
     def move(self):
         self.rect.x += self.speed_x
-        self.check_possible_moves_x()
+        if self.rect.x < 0:
+            self.rect.x = 0
+        else:
+            self.check_possible_moves_x()
 
         self.rect.y += self.speed_y
         self.check_possible_moves_y()
@@ -114,6 +117,7 @@ class Mario(pygame.sprite.Sprite):
                     self.rect.y = sprite.rect.y + sprite.rect.height
                     if type(sprite) == AllBlocks:
                         self.hit(sprite)
+        self.on_ground = not self.maygo_down
 
     def accelerate(self):
         self.speed_y += 55 / FPS
@@ -282,7 +286,7 @@ while running:
     mario.move()
     count += 1
 
-    if mario.rect.x > this_list_is_necessary_for_camera[0].rect.x + 222:
+    if mario.rect.x > 222:
         camera.update(mario)
     else:
         camera.dx = 0
