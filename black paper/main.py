@@ -2,7 +2,6 @@ import pygame
 import os
 import pyganim
 os.chdir('../sprites')
-
 pygame.init()
 pygame.mixer.init()
 
@@ -76,8 +75,8 @@ class Mario(pygame.sprite.Sprite):
         self.on_ground = False
         self.a_y = 0
 
-    # def update_coords(self):
-    #
+        self.money = 0
+        self.score = 0
 
     def move(self):
         self.rect.x += self.speed_x
@@ -115,7 +114,7 @@ class Mario(pygame.sprite.Sprite):
                     self.maygo_up = False
                     self.speed_y = 1
                     self.rect.y = sprite.rect.y + sprite.rect.height
-                    if type(sprite) == AllBlocks:
+                    if type(sprite) in (AllBlocks, QBlock):
                         self.hit(sprite)
         self.on_ground = not self.maygo_down
 
@@ -123,11 +122,14 @@ class Mario(pygame.sprite.Sprite):
         self.speed_y += 55 / FPS
 
     def hit(self, obj):
-        obj.hitted()
+        obj.hitted(self)
 
 
 class Enemy:
-    def hitted(self):
+    score_value = 100
+
+    def hitted(self, mario):
+        mario.score += Enemy.score_value
         print('YOU KILLED ME, MURDERER')
         del self
 
@@ -173,7 +175,7 @@ class AllBlocks(pygame.sprite.Sprite):
         # print(self.rect.x, self.rect.y)
         pass
 
-    def hitted(self):
+    def hitted(self, mario):
         print("Oh fuck.. I cant believe you done this")
 
 
@@ -183,7 +185,8 @@ class QBlock(pygame.sprite.Sprite):
                         ('q_block2.png'),
                         ('q_block3.png'),
                         ('q_block2.png')]
-    def __init__(self, x, y, w=16, h=16):
+
+    def __init__(self, x, y, w=16, h=16, c_of_money=1):
         super().__init__(surfaces2)
         self.image = pygame.transform.scale(load_image(QBlock.ANIMATION_QBLOCK[0]), (int(w * SCALE_D), int(h * SCALE_D)))
         self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
@@ -196,9 +199,16 @@ class QBlock(pygame.sprite.Sprite):
         self.boltAnimQ = pyganim.PygAnimation(boltAnim)
         self.boltAnimQ.play()
 
+        self.money = c_of_money
+
     def update(self):
         self.image.fill(sky_color)
         self.boltAnimQ.blit(self.image, (0, 0))
+
+    def hitted(self, mario):
+        if self.money > 0:
+            mario.money += 1
+            self.money -= 1
 
 
 class Camera:
@@ -282,6 +292,7 @@ count = 0
 
 running = True
 while running:
+    print(f'{mario.money=}')
     mario.accelerate()
     mario.move()
     count += 1
