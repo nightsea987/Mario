@@ -1,6 +1,7 @@
 import pygame
 import os
 import pyganim
+
 os.chdir('../sprites')
 
 pygame.init()
@@ -114,6 +115,7 @@ class Mario(pygame.sprite.Sprite):
                         self.hit(sprite)
                 if self.speed_y < 0:
                     self.maygo_up = False
+                    self.jump = False
                     self.speed_y = 1
                     self.rect.y = sprite.rect.y + sprite.rect.height
                     if type(sprite) in (AllBlocks, QBlock):
@@ -121,7 +123,13 @@ class Mario(pygame.sprite.Sprite):
         self.on_ground = not self.maygo_down
 
     def accelerate(self):
-        if mario.running_left:
+        if (mario.running_left and mario.running_right) or \
+                (not mario.running_left and not mario.running_right):
+            if mario.speed_x > 0:
+                mario.speed_x -= BASE_ACC_X
+            if mario.speed_x < 0:
+                mario.speed_x += BASE_ACC_X
+        elif mario.running_left:
             if mario.speed_x > -MARIOSPEEDMAX:
                 mario.speed_x -= BASE_ACC_X
             else:
@@ -131,12 +139,6 @@ class Mario(pygame.sprite.Sprite):
                 mario.speed_x += BASE_ACC_X
             else:
                 mario.speed_x = MARIOSPEEDMAX
-        else:
-            if mario.speed_x > 0:
-                mario.speed_x -= BASE_ACC_X
-            if mario.speed_x < 0:
-                mario.speed_x += BASE_ACC_X
-
         if mario.jump and ticks - self.jump_time <= 0.20 * FPS:
             mario.speed_y = - MARIOJUMPSPEED
         else:
@@ -149,7 +151,6 @@ class Mario(pygame.sprite.Sprite):
         pass
 
 
-
 class Enemy(pygame.sprite.Sprite):
     ANIMATION_DELAY = 1
     ANIMATION_MUSH_RUN = [(load_image('mush1.png', -1)),
@@ -160,7 +161,7 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y, w=16, h=16):
         super().__init__(enemies)
         self.image = pygame.transform.scale(Enemy.ANIMATION_MUSH_RUN[0],
-            (int(w * SCALE_D), int(h * SCALE_D)))
+                                            (int(w * SCALE_D), int(h * SCALE_D)))
 
         self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
         self.pos_x, self.pos_y = x, y
@@ -184,7 +185,6 @@ class Enemy(pygame.sprite.Sprite):
             self.image.fill(sky_color)
             self.boltAnimQ.blit(self.image, (0, 0))
 
-
             self.rect.x += self.xvel
 
             self.collide()
@@ -198,7 +198,6 @@ class Enemy(pygame.sprite.Sprite):
                 if self.rect.colliderect(sprite.rect) and self != sprite:
                     # если с чем-то или кем-то столкнулись
                     self.xvel = -self.xvel  # то поворачиваем в обратную сторону
-
 
     #     self.maygo_left = True
     #     self.maygo_right = True
@@ -225,8 +224,6 @@ class Enemy(pygame.sprite.Sprite):
     def hitted(self, mario):
         mario.score += Enemy.score_value
         sound_enemy_killed.play()
-
-
 
 
 class DecorSprites(pygame.sprite.Sprite):
@@ -283,11 +280,11 @@ class QBlock(pygame.sprite.Sprite):
                         ('q_block2.png')]
     QBLOCK_AFTER_HIT = [('q_block_after_hit.png')]
 
-
     def __init__(self, x, y, w=16, h=16, c_of_money=1):
         super().__init__(surfaces2)
         self.w, self.h = w, h
-        self.image = pygame.transform.scale(load_image(QBlock.ANIMATION_QBLOCK[0]), (int(w * SCALE_D), int(h * SCALE_D)))
+        self.image = pygame.transform.scale(load_image(QBlock.ANIMATION_QBLOCK[0]),
+                                            (int(w * SCALE_D), int(h * SCALE_D)))
         self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
         self.pos_x, self.pos_y = x, y
         self.rect = self.image.get_rect().move(self.tile_width * self.pos_x,
@@ -339,15 +336,16 @@ class Camera:
 
 
 # --------------------------SOUNDS-------------------------------------
-# pygame.mixer.music.load('../sounds/main_theme.mp3')
-# pygame.mixer.music.play()
+pygame.mixer.music.load('../sounds/main_theme.mp3')
+pygame.mixer.music.play()
 sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 sound_smallM_hit_block = pygame.mixer.Sound('../sounds/Bump.wav')
 sound_hit_qblock = pygame.mixer.Sound('../sounds/Coin.wav')
 sound_enemy_killed = pygame.mixer.Sound('../sounds/Kick.wav')
 
-
 this_list_is_necessary_for_camera = []
+
+
 def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
@@ -458,10 +456,11 @@ while running:
                 mario.jump_time = ticks
 
         elif event.type == pygame.KEYUP:
-            if event.key == 276 and mario.speed_x < 0:
+            print('keyup')
+            if event.key == 276:  # and mario.speed_x < 0:
                 # mario.speed_x = 0
                 mario.running_left = False
-            elif event.key == 275 and mario.speed_x > 0:
+            elif event.key == 275:  # and mario.speed_x > 0:
                 # mario.speed_x = 0
                 mario.running_right = False
             elif event.key == 273:
@@ -477,4 +476,5 @@ while running:
 
     ticks += 1
     clock.tick(FPS)
+    print(f"{mario.running_right=}, {mario.running_left=}")
 pygame.quit()
