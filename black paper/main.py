@@ -68,6 +68,11 @@ class Mario(pygame.sprite.Sprite):
         self.maygo_up = True
         self.maygo_down = True
 
+        self.running_left = False
+        self.running_right = False
+        self.jump = False
+
+        self.jump_time = 0
         self.speed_x = 0
         self.speed_y = 0
         self.check_possible_moves_x()
@@ -119,7 +124,26 @@ class Mario(pygame.sprite.Sprite):
         self.on_ground = not self.maygo_down
 
     def accelerate(self):
-        self.speed_y += 55 / FPS
+        if mario.running_left:
+            if mario.speed_x > -MARIOSPEEDMAX:
+                mario.speed_x -= BASE_ACC_X
+            else:
+                mario.speed_x = -MARIOSPEEDMAX
+        elif mario.running_right:
+            if mario.speed_x < MARIOSPEEDMAX:
+                mario.speed_x += BASE_ACC_X
+            else:
+                mario.speed_x = MARIOSPEEDMAX
+        else:
+            if mario.speed_x > 0:
+                mario.speed_x -= BASE_ACC_X
+            if mario.speed_x < 0:
+                mario.speed_x += BASE_ACC_X
+
+        if mario.jump and ticks - self.jump_time <= 0.20 * FPS:
+            mario.speed_y = - MARIOJUMPSPEED
+        else:
+            self.speed_y += BASE_ACC_Y_DOWN
 
     def hit(self, obj):
         obj.hitted(self)
@@ -223,12 +247,12 @@ class Camera:
         # self.dy = 0
 
     def update(self, target):
-        self.dx = -(target.rect.x + target.rect.w // 2 - 8 * WIDTH // 27)
+        self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 2)
 
 
 # --------------------------SOUNDS-------------------------------------
-pygame.mixer.music.load('../sounds/main_theme.mp3')
-pygame.mixer.music.play()
+# pygame.mixer.music.load('../sounds/main_theme.mp3')
+# pygame.mixer.music.play()
 sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 
 tube_count = 0
@@ -284,20 +308,26 @@ camera = Camera()
 # camera.update(mario)
 
 
-BASEMARIOSPEED = 110 * SCALE_D
-MARIOJUMPSPEED = 410 * SCALE_D
+BASEMARIOSPEED = 110 * SCALE_D / FPS
+MARIOSTARTSPEED = 20 * SCALE_D / FPS
+MARIOJUMPSPEED = 220 * SCALE_D / FPS
+MARIOSPEEDMAX = 100 * SCALE_D / FPS
+BASE_ACC_X = 5 * SCALE_D / FPS
+BASE_ACC_Y_DOWN = 55 / FPS
+# BASE_ACC_Y_UP =
+STOP_ACC_X = 30 * SCALE_D / FPS
 
 sky_color = (147, 147, 254)
 count = 0
+ticks = 0
 
 running = True
 while running:
-    print(f'{mario.money=}')
     mario.accelerate()
     mario.move()
     count += 1
 
-    if mario.rect.x > 222:
+    if mario.rect.x >= WIDTH // 2 - mario.rect.w // 2:
         camera.update(mario)
     else:
         camera.dx = 0
@@ -316,18 +346,26 @@ while running:
             running = False
         elif event.type == pygame.KEYDOWN:
             if event.key == 276:
-                mario.speed_x = - BASEMARIOSPEED / FPS
+                # mario.speed_x = - BASEMARIOSPEED
+                mario.running_left = True
             elif event.key == 275:
-                mario.speed_x = BASEMARIOSPEED / FPS
+                # mario.speed_x = BASEMARIOSPEED
+                mario.running_right = True
             elif event.key == 273 and mario.speed_y == 1:
-                mario.speed_y = - MARIOJUMPSPEED / FPS
                 sound_jump.play()
+                # mario.speed_y = - MARIOJUMPSPEED
+                mario.jump = True
+                mario.jump_time = ticks
 
         elif event.type == pygame.KEYUP:
             if event.key == 276 and mario.speed_x < 0:
-                mario.speed_x = 0
+                # mario.speed_x = 0
+                mario.running_left = False
             elif event.key == 275 and mario.speed_x > 0:
-                mario.speed_x = 0
+                # mario.speed_x = 0
+                mario.running_right = False
+            elif event.key == 273:
+                mario.jump = False
 
     decoration.update()
     if count % 10 == 0:
@@ -335,5 +373,6 @@ while running:
     heroes.update()
     pygame.display.flip()
 
+    ticks += 1
     clock.tick(FPS)
 pygame.quit()
