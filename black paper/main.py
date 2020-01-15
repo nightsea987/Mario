@@ -2,6 +2,7 @@ import pygame
 import os
 import pyganim
 os.chdir('../sprites')
+
 pygame.init()
 pygame.mixer.init()
 
@@ -36,16 +37,12 @@ class Mario(pygame.sprite.Sprite):
         "Mario": load_image('small_mario_stand.png', -1)
     }
     ANIMATION_DELAY = 0.1  # скорость смены кадров
-    ANIMATION_SMALL_RIGHT = [('mario/r1.png'),
-                       ('mario/r2.png'),
-                       ('mario/r3.png'),
-                       ('mario/r4.png'),
-                       ('mario/r5.png')]
-    ANIMATION_SMALL_LEFT = [('mario/l1.png'),
-                      ('mario/l2.png'),
-                      ('mario/l3.png'),
-                      ('mario/l4.png'),
-                      ('mario/l5.png')]
+    ANIMATION_SMALL_RIGHT = [load_image('small_mario_run1.png', -1),
+                             load_image('small_mario_run2.png', -1),
+                             load_image('small_mario_run3.png', -1)]
+    ANIMATION_SMALL_LEFT = [load_image('small_mario_run1_left.png', -1),
+                            load_image('small_mario_run2_left.png', -1),
+                            load_image('small_mario_run3_left.png', -1)]
     # ANIMATION_JUMP_LEFT = [('mario/jl.png', 0.1)]
     # ANIMATION_JUMP_RIGHT = [('mario/jr.png', 0.1)]
     ANIMATION_SMALL_JUMP = [('small_mario_jump.png', 0.1)]
@@ -124,14 +121,88 @@ class Mario(pygame.sprite.Sprite):
     def hit(self, obj):
         obj.hitted(self)
 
+    def update(self):
+        pass
 
-class Enemy:
+
+
+class Enemy(pygame.sprite.Sprite):
+    ANIMATION_DELAY = 1
+    ANIMATION_MUSH_RUN = [(load_image('mush1.png', -1)),
+                          (load_image('mush2.png', -1))]
+
     score_value = 100
+
+    def __init__(self, x, y, w=16, h=16):
+        super().__init__(enemies)
+        self.image = pygame.transform.scale(Enemy.ANIMATION_MUSH_RUN[0],
+            (int(w * SCALE_D), int(h * SCALE_D)))
+
+        self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
+        self.pos_x, self.pos_y = x, y
+
+        self.rect = self.image.get_rect().move(self.tile_width * self.pos_x, self.tile_height * self.pos_y)
+
+        boltAnim = []
+        for anim in Enemy.ANIMATION_MUSH_RUN:
+            print(Enemy.ANIMATION_MUSH_RUN)
+            boltAnim.append(
+                (anim, float(Enemy.ANIMATION_DELAY)))
+        self.boltAnimQ = pyganim.PygAnimation(boltAnim)
+        self.boltAnimQ.play()
+
+        self.is_alive = True
+
+        self.xvel = -5
+
+    def update(self):  # по принципу героя
+        if self.is_alive:
+            self.image.fill(sky_color)
+            self.boltAnimQ.blit(self.image, (0, 0))
+
+
+            self.rect.x += self.xvel
+
+            self.collide()
+
+    def collide(self):
+        # for p in [surfaces2, enemies]:
+        #     if sprite.collide_rect(self,
+        #                            p) and self != p:
+        for group in [enemies, surfaces2]:
+            for sprite in group:
+                if self.rect.colliderect(sprite.rect) and self != sprite:
+                    # если с чем-то или кем-то столкнулись
+                    self.xvel = -self.xvel  # то поворачиваем в обратную сторону
+
+
+    #     self.maygo_left = True
+    #     self.maygo_right = True
+    #
+    #     self.speed_x = 0
+    #     self.check_possible_moves_x()
+    #
+    # def move(self):
+    #     self.rect.x += self.speed_x
+    #     self.check_possible_moves_x()
+    #
+    # def check_possible_moves_x(self):
+    #     self.maygo_right, self.maygo_left = False, False
+    #
+    #     for sprite in surfaces2:
+    #         if self.rect.colliderect(sprite.rect):
+    #             if self.speed_x > 0:
+    #                 self.maygo_right = False
+    #                 self.rect.x = sprite.rect.x - self.rect.width
+    #             elif self.speed_x < 0:
+    #                 self.maygo_left = False
+    #                 self.rect.x = sprite.rect.x + sprite.rect.width
 
     def hitted(self, mario):
         mario.score += Enemy.score_value
-        print('YOU KILLED ME, MURDERER')
-        del self
+        sound_enemy_killed.play()
+
+
 
 
 class DecorSprites(pygame.sprite.Sprite):
@@ -176,6 +247,7 @@ class AllBlocks(pygame.sprite.Sprite):
         pass
 
     def hitted(self, mario):
+        sound_smallM_hit_block.play()
         print("Oh fuck.. I cant believe you done this")
 
 
@@ -185,9 +257,12 @@ class QBlock(pygame.sprite.Sprite):
                         ('q_block2.png'),
                         ('q_block3.png'),
                         ('q_block2.png')]
+    QBLOCK_AFTER_HIT = [('q_block_after_hit.png')]
+
 
     def __init__(self, x, y, w=16, h=16, c_of_money=1):
         super().__init__(surfaces2)
+        self.w, self.h = w, h
         self.image = pygame.transform.scale(load_image(QBlock.ANIMATION_QBLOCK[0]), (int(w * SCALE_D), int(h * SCALE_D)))
         self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
         self.pos_x, self.pos_y = x, y
@@ -199,16 +274,29 @@ class QBlock(pygame.sprite.Sprite):
         self.boltAnimQ = pyganim.PygAnimation(boltAnim)
         self.boltAnimQ.play()
 
-        self.money = c_of_money
+        self.is_hitted = False
 
-    def update(self):
-        self.image.fill(sky_color)
-        self.boltAnimQ.blit(self.image, (0, 0))
+        self.money = c_of_money
 
     def hitted(self, mario):
         if self.money > 0:
             mario.money += 1
             self.money -= 1
+            sound_hit_qblock.play()
+            self.is_hitted = True
+        else:
+            sound_smallM_hit_block.play()
+
+    def update(self):
+        if self.is_hitted:
+            self.image = pygame.transform.scale(
+                load_image('q_block_after_hit.png'),
+                (int(self.w * SCALE_D), int(self.h * SCALE_D)))
+            self.boltAnimQ.blit(self.image, (0, 0))
+            self.boltAnimQ.stop()
+        else:
+            self.image.fill(sky_color)
+            self.boltAnimQ.blit(self.image, (0, 0))
 
 
 class Camera:
@@ -230,8 +318,10 @@ class Camera:
 pygame.mixer.music.load('../sounds/main_theme.mp3')
 pygame.mixer.music.play()
 sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
+sound_smallM_hit_block = pygame.mixer.Sound('../sounds/Bump.wav')
+sound_hit_qblock = pygame.mixer.Sound('../sounds/Coin.wav')
+sound_enemy_killed = pygame.mixer.Sound('../sounds/Kick.wav')
 
-tube_count = 0
 
 this_list_is_necessary_for_camera = []
 def generate_level(level):
@@ -253,6 +343,8 @@ def generate_level(level):
                     AllBlocks('small_tube.png', x, y - 1, 32, 32)
                 elif level[y + 1][x] == '!' and level[y + 2][x] == '!':
                     AllBlocks('big_tube.png', x, y - 1, 32, 64)
+            elif level[y][x] == 'k':
+                pass
 
             elif level[y][x] == 'c':
                 DecorSprites(0, x, y)
@@ -266,6 +358,8 @@ def generate_level(level):
                 DecorSprites(4, x, y)
             elif level[y][x] == '@':
                 new_player = Mario(x, y, "Mario")
+            elif level[y][x] == 'm':
+                Enemy(x, y)
     return new_player, x, y
 
 
@@ -278,6 +372,7 @@ BLOCK_SIZE = 16 * SCALE_D
 surfaces2 = pygame.sprite.Group()
 heroes = pygame.sprite.Group()
 decoration = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
 
 mario, level_x, level_y = generate_level(load_level('map1.txt'))
 camera = Camera()
@@ -288,11 +383,12 @@ BASEMARIOSPEED = 110 * SCALE_D
 MARIOJUMPSPEED = 410 * SCALE_D
 
 sky_color = (147, 147, 254)
+
 count = 0
 
 running = True
 while running:
-    print(f'{mario.money=}')
+    print(f'{mario.money}')
     mario.accelerate()
     mario.move()
     count += 1
@@ -302,14 +398,18 @@ while running:
     else:
         camera.dx = 0
 
-    for group in [decoration, surfaces2, heroes]:
+    for group in [decoration, surfaces2, heroes, enemies]:
         for sprite in group:
             camera.apply(sprite)
+
+    # for enemy in enemies:
+    #     enemy.move()
 
     screen.fill(sky_color)
     decoration.draw(screen)
     surfaces2.draw(screen)
     heroes.draw(screen)
+    enemies.draw(screen)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -332,6 +432,8 @@ while running:
     decoration.update()
     if count % 10 == 0:
         surfaces2.update()
+    if count % 4 == 0:
+        enemies.update()
     heroes.update()
     pygame.display.flip()
 
