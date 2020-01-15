@@ -60,6 +60,7 @@ class Mario(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(self.tile_width * self.pos_x, self.tile_height * self.pos_y)
 
         # print(id(self.rect) == id(self.image.get_rect()))
+        self.died = False
 
         self.maygo_left = True
         self.maygo_right = True
@@ -103,6 +104,10 @@ class Mario(pygame.sprite.Sprite):
                     self.maygo_left = False
                     self.rect.x = sprite.rect.x + sprite.rect.width
 
+        for enemy in enemies:
+            if self.rect.colliderect(enemy.rect):
+                self.hitted()
+
     def check_possible_moves_y(self):
         self.maygo_up, self.maygo_down = False, False
         for sprite in surfaces2:
@@ -121,6 +126,13 @@ class Mario(pygame.sprite.Sprite):
                     if type(sprite) in (AllBlocks, QBlock):
                         self.hit(sprite)
         self.on_ground = not self.maygo_down
+        if self.speed_y > 1:
+            for enemy in enemies:
+                if self.rect.colliderect(enemy.rect):
+                    enemy.hitted(self)
+                    self.y = enemy.rect.y - self.rect.width
+                    self.speed_y = - MARIOJUMPSPEED
+                    print(f'{self.score=}')
 
     def accelerate(self):
         if (mario.running_left and mario.running_right) or \
@@ -150,6 +162,10 @@ class Mario(pygame.sprite.Sprite):
     def update(self):
         pass
 
+    def hitted(self):
+        self.died = True
+        print('i am died, but actually no, lol')
+
 
 class Enemy(pygame.sprite.Sprite):
     ANIMATION_DELAY = 1
@@ -177,6 +193,7 @@ class Enemy(pygame.sprite.Sprite):
         self.boltAnimQ.play()
 
         self.is_alive = True
+        self.running = False
 
         self.xvel = -5
 
@@ -185,7 +202,11 @@ class Enemy(pygame.sprite.Sprite):
             self.image.fill(sky_color)
             self.boltAnimQ.blit(self.image, (0, 0))
 
-            self.rect.x += self.xvel
+            if abs(self.rect.x - mario.rect.x) < BLOCK_SIZE * 14:
+                self.running = True
+
+            if self.running:
+                self.rect.x += self.xvel
 
             self.collide()
 
@@ -224,6 +245,8 @@ class Enemy(pygame.sprite.Sprite):
     def hitted(self, mario):
         mario.score += Enemy.score_value
         sound_enemy_killed.play()
+        self.is_alive = False
+        self.remove(enemies)
 
 
 class DecorSprites(pygame.sprite.Sprite):
@@ -336,8 +359,8 @@ class Camera:
 
 
 # --------------------------SOUNDS-------------------------------------
-pygame.mixer.music.load('../sounds/main_theme.mp3')
-pygame.mixer.music.play()
+# pygame.mixer.music.load('../sounds/main_theme.mp3')
+# pygame.mixer.music.play()
 sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 sound_smallM_hit_block = pygame.mixer.Sound('../sounds/Bump.wav')
 sound_hit_qblock = pygame.mixer.Sound('../sounds/Coin.wav')
@@ -456,7 +479,6 @@ while running:
                 mario.jump_time = ticks
 
         elif event.type == pygame.KEYUP:
-            print('keyup')
             if event.key == 276:  # and mario.speed_x < 0:
                 # mario.speed_x = 0
                 mario.running_left = False
@@ -476,5 +498,4 @@ while running:
 
     ticks += 1
     clock.tick(FPS)
-    print(f"{mario.running_right=}, {mario.running_left=}")
 pygame.quit()
