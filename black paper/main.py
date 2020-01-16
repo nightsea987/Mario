@@ -88,6 +88,8 @@ class Mario(pygame.sprite.Sprite):
             self.rect.x = 0
         else:
             self.check_possible_moves_x()
+        if self.rect.y > HEIGHT:
+            self.hitted()
 
         self.rect.y += self.speed_y
         self.check_possible_moves_y()
@@ -163,8 +165,8 @@ class Mario(pygame.sprite.Sprite):
         pass
 
     def hitted(self):
-        self.died = True
-        print('i am died, but actually no, lol')
+        global cur_lives
+        cur_lives -= 1
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -246,7 +248,7 @@ class Enemy(pygame.sprite.Sprite):
         mario.score += Enemy.score_value
         sound_enemy_killed.play()
         self.is_alive = False
-        self.remove(enemies)
+        # self.remove(enemies)
 
 
 class DecorSprites(pygame.sprite.Sprite):
@@ -285,13 +287,14 @@ class AllBlocks(pygame.sprite.Sprite):
                                                self.tile_height * self.pos_y)
 
     def update(self):
-        # self.rect.x = self.pos_x
-        # self.rect.y = self.pos_y
-        # print(self.rect.x, self.rect.y)
-        pass
+        self.rect.y = self.tile_height * self.pos_y
 
     def hitted(self, mario):
+        global count
         sound_smallM_hit_block.play()
+        self.rect.y -= 3
+        count //= 10
+        count *= 10
         print("Oh fuck.. I cant believe you done this")
 
 
@@ -408,6 +411,11 @@ def generate_level(level):
     return new_player, x, y
 
 
+def pause_func():
+    global pause
+    pause = not pause
+
+
 clock = pygame.time.Clock()
 FPS = 60
 SCALE_D = 2.5
@@ -418,8 +426,8 @@ surfaces2 = pygame.sprite.Group()
 heroes = pygame.sprite.Group()
 decoration = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
+all_groups = [decoration, surfaces2, heroes, enemies]
 
-mario, level_x, level_y = generate_level(load_level('map1.txt'))
 camera = Camera()
 # camera.update(mario)
 
@@ -434,68 +442,83 @@ BASE_ACC_Y_DOWN = 55 / FPS
 STOP_ACC_X = 30 * SCALE_D / FPS
 
 sky_color = (147, 147, 254)
+lives = 3
+cur_lives = 3
+cur_map = "map1.txt"
+while lives != 0:
 
-count = 0
-ticks = 0
+    mario, level_x, level_y = generate_level(load_level(cur_map))
 
-running = True
-while running:
-    mario.accelerate()
-    mario.move()
-    count += 1
+    count = 0
+    ticks = 0
 
-    if mario.rect.x >= WIDTH // 2 - mario.rect.w // 2:
-        camera.update(mario)
-    else:
-        camera.dx = 0
+    running = True
+    pause = False
+    while running and cur_lives == lives:
+        print(lives)
+        if not pause:
+            mario.accelerate()
+            mario.move()
+            count += 1
 
-    for group in [decoration, surfaces2, heroes, enemies]:
-        for sprite in group:
-            camera.apply(sprite)
+            if mario.rect.x >= WIDTH // 2 - mario.rect.w // 2:
+                camera.update(mario)
+            else:
+                camera.dx = 0
 
-    # for enemy in enemies:
-    #     enemy.move()
+            for group in all_groups:
+                for sprite in group:
+                    camera.apply(sprite)
 
-    screen.fill(sky_color)
-    decoration.draw(screen)
-    surfaces2.draw(screen)
-    heroes.draw(screen)
-    enemies.draw(screen)
+            # for enemy in enemies:
+            #     enemy.move()
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.KEYDOWN:
-            if event.key == 276:
-                # mario.speed_x = - BASEMARIOSPEED
-                mario.running_left = True
-            elif event.key == 275:
-                # mario.speed_x = BASEMARIOSPEED
-                mario.running_right = True
-            elif event.key == 273 and mario.speed_y == 1:
-                sound_jump.play()
-                # mario.speed_y = - MARIOJUMPSPEED
-                mario.jump = True
-                mario.jump_time = ticks
+            screen.fill(sky_color)
+            decoration.draw(screen)
+            surfaces2.draw(screen)
+            heroes.draw(screen)
+            enemies.draw(screen)
 
-        elif event.type == pygame.KEYUP:
-            if event.key == 276:  # and mario.speed_x < 0:
-                # mario.speed_x = 0
-                mario.running_left = False
-            elif event.key == 275:  # and mario.speed_x > 0:
-                # mario.speed_x = 0
-                mario.running_right = False
-            elif event.key == 273:
-                mario.jump = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_ESCAPE, pygame.K_p]:
+                    pause_func()
+                if event.key == 276:
+                    # mario.speed_x = - BASEMARIOSPEED
+                    mario.running_left = True
+                elif event.key == 275:
+                    # mario.speed_x = BASEMARIOSPEED
+                    mario.running_right = True
+                elif event.key == 273 and mario.speed_y == 1:
+                    sound_jump.play()
+                    # mario.speed_y = - MARIOJUMPSPEED
+                    mario.jump = True
+                    mario.jump_time = ticks
+            elif event.type == pygame.KEYUP:
+                if event.key == 276:  # and mario.speed_x < 0:
+                    # mario.speed_x = 0
+                    mario.running_left = False
+                elif event.key == 275:  # and mario.speed_x > 0:
+                    # mario.speed_x = 0
+                    mario.running_right = False
+                elif event.key == 273:
+                    mario.jump = False
 
-    decoration.update()
-    if count % 10 == 0:
-        surfaces2.update()
-    if count % 4 == 0:
-        enemies.update()
-    heroes.update()
-    pygame.display.flip()
+        if not pause:
+            decoration.update()
+            if count % 10 == 0:
+                surfaces2.update()
+            if count % 4 == 0:
+                enemies.update()
+            heroes.update()
+            pygame.display.flip()
 
-    ticks += 1
-    clock.tick(FPS)
+            ticks += 1
+        clock.tick(FPS)
+
+    for group in all_groups:
+        group.empty()
+    lives -= 1
 pygame.quit()
