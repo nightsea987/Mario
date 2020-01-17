@@ -107,9 +107,11 @@ class Mario(pygame.sprite.Sprite):
                 if self.speed_x > 0:
                     self.maygo_right = False
                     self.rect.x = sprite.rect.x - self.rect.width
+                    self.speed_x = 0
                 elif self.speed_x < 0:
                     self.maygo_left = False
                     self.rect.x = sprite.rect.x + sprite.rect.width
+                    self.speed_x = 0
 
         for enemy in enemies:
             if self.rect.colliderect(enemy.rect) and enemy.is_alive:
@@ -123,8 +125,8 @@ class Mario(pygame.sprite.Sprite):
                     self.maygo_down = False
                     self.speed_y = 1
                     self.rect.y = sprite.rect.y - self.rect.height
-                    if type(sprite) == Enemy:
-                        self.hit(sprite)
+                    # if type(sprite) == Enemy:
+                    #     self.hit(sprite)
                 if self.speed_y < 0:
                     self.maygo_up = False
                     self.jump = False
@@ -139,7 +141,6 @@ class Mario(pygame.sprite.Sprite):
                     enemy.hitted(self)
                     self.y = enemy.rect.y - self.rect.width
                     self.speed_y = - MARIOJUMPSPEED
-                    print(f'{self.score}')
 
     def accelerate(self):
         if (mario.running_left and mario.running_right) or \
@@ -223,7 +224,8 @@ class Enemy(pygame.sprite.Sprite):
         self.is_alive = True
         self.running = False
 
-        self.xvel = -5
+        self.speed_x = -5
+        self.speed_y = ENEMYSPEEDY
 
     def update(self):  # по принципу героя
         if self.anim_count + 1 >= FPS:
@@ -237,29 +239,48 @@ class Enemy(pygame.sprite.Sprite):
                 self.running = True
 
             if self.running:
-                self.rect.x += self.xvel
+                self.rect.x += self.speed_x
+                self.collide_x()
+                self.rect.y += self.speed_y
+                self.collide_y()
 
-            self.collide()
         else:
             self.image.fill(sky_color)
             self.image.blit(Enemy.ANIMATION_MUSH_DIE[0], (0, 0))
             # print('a')
             died.add(self)
+            global count
+            count //= 90
+            count *= 90
+            count += 1
             # enemies.remove(self)
             self.remove(enemies)
         self.anim_count += 1
 
-    def collide(self):
+    def collide_x(self):
         for group in [enemies, surfaces2]:
             for sprite in group:
                 if self.rect.colliderect(sprite.rect) and self != sprite:
                     # если с чем-то или кем-то столкнулись
-                    self.xvel = -self.xvel  # то поворачиваем в обратную сторону
+                    self.speed_x = -self.speed_x  # то поворачиваем в обратную сторону
+                    if self.speed_x > 0:
+                        self.rect.x = sprite.rect.x + sprite.rect.width
+                    if self.speed_x < 0:
+                        self.rect.x = sprite.rect.x - self.rect.width
+
+    def collide_y(self):
+        for sprite in surfaces2:
+            if self.rect.colliderect(sprite.rect):
+                self.rect.y = sprite.rect.y - self.rect.height
 
     def hitted(self, mario):
         mario.score += Enemy.score_value
         sound_enemy_killed.play()
         self.is_alive = False
+        global count
+        count //= 4
+        count *= 4
+        # self.remove(enemies)
         pygame.mixer.music.stop()
 
 
@@ -484,10 +505,11 @@ camera = Camera()
 
 BASEMARIOSPEED = 110 * SCALE_D / FPS
 MARIOSTARTSPEED = 20 * SCALE_D / FPS
-MARIOJUMPSPEED = 220 * SCALE_D / FPS
+MARIOJUMPSPEED = 210 * SCALE_D / FPS
 MARIOSPEEDMAX = 100 * SCALE_D / FPS
+ENEMYSPEEDY = 300 * SCALE_D / FPS
 BASE_ACC_X = 5 * SCALE_D / FPS
-BASE_ACC_Y_DOWN = 55 / FPS
+BASE_ACC_Y_DOWN = 40 / FPS
 # BASE_ACC_Y_UP =
 STOP_ACC_X = 30 * SCALE_D / FPS
 
@@ -565,7 +587,7 @@ while lives != 0:
                 surfaces2.update()
             if count % 4 == 0:
                 enemies.update()
-            if ticks % 90 == 0:
+            if count % 90 == 0:
                 died.remove(*died)
             heroes.update()
             pygame.display.flip()
