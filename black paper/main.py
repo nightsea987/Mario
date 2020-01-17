@@ -510,7 +510,6 @@ MARIOSPEEDMAX = 100 * SCALE_D / FPS
 ENEMYSPEEDY = 300 * SCALE_D / FPS
 BASE_ACC_X = 5 * SCALE_D / FPS
 BASE_ACC_Y_DOWN = 40 / FPS
-# BASE_ACC_Y_UP =
 STOP_ACC_X = 30 * SCALE_D / FPS
 
 sky_color = (147, 147, 254)
@@ -525,9 +524,7 @@ while lives != 0:
     running = True
     pause = False
     while running and cur_lives == lives:
-        print(lives)
         if not pause:
-
             mario.accelerate()
             mario.move()
             count += 1
@@ -571,6 +568,8 @@ while lives != 0:
                     # mario.speed_y = - MARIOJUMPSPEED
                     mario.jump = True
                     mario.jump_time = ticks
+                elif event.key in [pygame.K_LCTRL, pygame.K_RCTRL]:
+                    MARIOSPEEDMAX = 200 * SCALE_D / FPS
             elif event.type == pygame.KEYUP:
                 if event.key == 276:  # and mario.speed_x < 0:
                     # mario.speed_x = 0
@@ -580,6 +579,8 @@ while lives != 0:
                     mario.running_right = False
                 elif event.key == 273:
                     mario.jump = False
+                elif event.key in [pygame.K_LCTRL, pygame.K_RCTRL]:
+                    MARIOSPEEDMAX = 100 * SCALE_D / FPS
 
         if not pause:
             decoration.update()
