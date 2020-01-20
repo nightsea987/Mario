@@ -77,6 +77,7 @@ class Mario(pygame.sprite.Sprite):
         self.jump = False
 
         self.endtime = 0
+        self.die_time = 0
         self.jump_time = 0
         self.speed_x = 0
         self.speed_y = 0
@@ -87,7 +88,19 @@ class Mario(pygame.sprite.Sprite):
         self.score = 0
 
     def move(self):
-        if self.endgame:
+        if self.died:
+            self.speed_x = 0
+            self.speed_y = 0
+            self.maygo_left = False
+            self.maygo_right = False
+            self.maygo_up = False
+            self.maygo_down = False
+
+            self.running_left = False
+            self.running_right = False
+            self.jump = False
+
+        elif self.endgame:
             if ticks - self.endtime > 4 * FPS:
                 self.running_right = True
                 self.speed_x = MARIOSPEEDMAX // 2
@@ -209,8 +222,8 @@ class Mario(pygame.sprite.Sprite):
 
     def hitted(self):
         global cur_lives
-        cur_lives -= 1
         self.died = True
+        self.die_time = ticks
         pygame.mixer.music.stop()
         sound_die.play()
 
@@ -293,8 +306,6 @@ class Enemy(pygame.sprite.Sprite):
         global count
         count //= 4
         count *= 4
-        # self.remove(enemies)
-        pygame.mixer.music.stop()
 
 
 class DecorSprites(pygame.sprite.Sprite):
@@ -436,19 +447,11 @@ class Camera:
         # self.dy = 0
 
     def update(self, target):
-        self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 2)
+        if target == final_flag:
+            self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 4)
+        else:
+            self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 2)
 
-
-# --------------------------SOUNDS-------------------------------------
-pygame.mixer.music.load('../sounds/main_theme.mp3')
-pygame.mixer.music.play()
-sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
-sound_smallM_hit_block = pygame.mixer.Sound('../sounds/Bump.wav')
-sound_hit_qblock = pygame.mixer.Sound('../sounds/Coin.wav')
-sound_enemy_killed = pygame.mixer.Sound('../sounds/Kick.wav')
-sound_die = pygame.mixer.Sound('../sounds/Die.wav')
-sound_pause = pygame.mixer.Sound('../sounds/Pause.wav')
-sound_game_over = pygame.mixer.Sound('../sounds/Game Over.wav')
 
 this_list_is_necessary_for_camera = []
 
@@ -525,23 +528,33 @@ BASE_ACC_X = 5 * SCALE_D / FPS
 BASE_ACC_Y_DOWN = 40 / FPS
 STOP_ACC_X = 30 * SCALE_D / FPS
 
-sky_color = (147, 147, 254)
+sky_color = (107, 140, 255)
 lives = 3
 cur_lives = 3
 cur_map = "map1.txt"
 
-static_fonts = [pygame.font.Font("../font/Mario_font.ttf", 40)] * 5
-static_texts = ["score", "coins", "map", "time", "lives"]
+static_fonts = [pygame.font.Font("../font/prstart.ttf", 25)] * 5
+static_texts = ["SCORE", "COINS", "MAP", "TIME", "LIVES"]
 static_texts_surfaces = [font.render(text, True, (255, 255, 255)) for font, text in
-                        [(static_fonts[i], static_texts[i]) for i in range(5)]]
+                         [(static_fonts[i], static_texts[i]) for i in range(5)]]
 static_texts_rects = [surface.get_rect() for surface in static_texts_surfaces]
 for i in range(5):
-    static_texts_rects[i].center = (100 + i * 150, 20)
-
+    static_texts_rects[i].center = (100 + i * 150, 17)
 
 while lives != 0:
+    # --------------------------SOUNDS-------------------------------------
+    pygame.mixer.music.load('../sounds/main_theme.mp3')
+    pygame.mixer.music.play()
+    sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
+    sound_smallM_hit_block = pygame.mixer.Sound('../sounds/Bump.wav')
+    sound_hit_qblock = pygame.mixer.Sound('../sounds/Coin.wav')
+    sound_enemy_killed = pygame.mixer.Sound('../sounds/Kick.wav')
+    sound_die = pygame.mixer.Sound('../sounds/Die.wav')
+    sound_pause = pygame.mixer.Sound('../sounds/Pause.wav')
+    sound_game_over = pygame.mixer.Sound('../sounds/Game Over.wav')
+
     mario, level_x, level_y, final_flag = generate_level(load_level(cur_map))
-    static_numbers = [pygame.font.Font("../font/Mario_font.ttf", 35)] * 5
+    static_numbers = [pygame.font.Font("../font/prstart.ttf", 23)] * 5
 
     count = 0
     ticks = 0
@@ -550,12 +563,26 @@ while lives != 0:
     pause = False
     while running and cur_lives == lives:
         if not pause:
-            mario.accelerate()
-            mario.move()
+            if mario.died:
+                if ticks - mario.die_time < 300:
+                    if ticks - mario.die_time < 30:
+                        mario.rect.y -= 1
+                    elif ticks - mario.die_time < 50:
+                        pass
+                    else:
+                        mario.rect.y += 3
+                else:
+                    cur_lives -= 1
+            else:
+                mario.accelerate()
+                mario.move()
             count += 1
 
             if mario.rect.x >= WIDTH // 2 - mario.rect.w // 2:
-                camera.update(mario)
+                if final_flag.rect.x <= WIDTH // 4:
+                    camera.update(final_flag)
+                else:
+                    camera.update(mario)
             else:
                 camera.dx = 0
 
@@ -573,13 +600,13 @@ while lives != 0:
             enemies.draw(screen)
             heroes.draw(screen)
 
-            static_numbers_texts = [str(mario.score), str(mario.money), cur_map, str(500 - ticks // FPS),
+            static_numbers_texts = [str(mario.score), str(mario.money), cur_map, str(400 - ticks // FPS),
                                     str(cur_lives)]
             static_numbers_surfaces = [font.render(text, True, (255, 255, 255)) for font, text in
                                        [(static_numbers[i], static_numbers_texts[i]) for i in range(5)]]
             static_numbers_rects = [surface.get_rect() for surface in static_numbers_surfaces]
             for i in range(5):
-                static_numbers_rects[i].center = (100 + i * 150, 60)
+                static_numbers_rects[i].center = (100 + i * 150, 55)
             [screen.blit(static_numbers_surfaces[i], static_numbers_rects[i]) for i in range(5)]
             [screen.blit(static_texts_surfaces[i], static_texts_rects[i]) for i in range(5)]
 
@@ -599,7 +626,8 @@ while lives != 0:
                     mario.left = False
                     mario.running_right = True
                 elif event.key == 273 and mario.speed_y == 1:
-                    sound_jump.play()
+                    if not mario.endgame and not mario.died:
+                        sound_jump.play()
                     # mario.speed_y = - MARIOJUMPSPEED
                     mario.jump = True
                     mario.jump_time = ticks
@@ -634,8 +662,14 @@ while lives != 0:
     for group in all_groups:
         group.empty()
     lives -= 1
-# else:
-#     for _ in range(1300):
-#         screen.blit(game_over, (200, 0))
-#         sound_game_over.play()
+if cur_lives == 0:
+    sound_die.stop()
+    sound_game_over.play()
+    for _ in range(567):
+        for event in pygame.event.get():
+            if event == pygame.QUIT:
+                pygame.quit()
+                exit()
+        screen.blit(game_over, (0, 0))
+        pygame.display.flip()
 pygame.quit()
