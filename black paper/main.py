@@ -129,7 +129,6 @@ class Mario(pygame.sprite.Sprite):
             if self.rect.colliderect(enemy.rect) and enemy.is_alive:
                 self.hitted()
 
-
     def check_possible_moves_y(self):
         self.maygo_up, self.maygo_down = False, False
         for sprite in surfaces2:
@@ -312,8 +311,8 @@ class DecorSprites(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = x, y
         self.image1 = DecorSprites.sprites[image_type]
         self.image = pygame.transform.scale(self.image1,
-                                        (int(self.image1.get_width() * SCALE_D),
-                                        int(self.image1.get_height() * SCALE_D)))
+                                            (int(self.image1.get_width() * SCALE_D),
+                                             int(self.image1.get_height() * SCALE_D)))
         self.rect = self.image.get_rect().move(
             BLOCK_SIZE * self.pos_x,
             BLOCK_SIZE * self.pos_y - (self.image1.get_height() * SCALE_D - BLOCK_SIZE))
@@ -526,15 +525,24 @@ BASE_ACC_X = 5 * SCALE_D / FPS
 BASE_ACC_Y_DOWN = 40 / FPS
 STOP_ACC_X = 30 * SCALE_D / FPS
 
-
-
 sky_color = (147, 147, 254)
 lives = 3
 cur_lives = 3
 cur_map = "map1.txt"
 
+static_fonts = [pygame.font.Font("../font/Mario_font.ttf", 40)] * 5
+static_texts = ["score", "coins", "map", "time", "lives"]
+static_texts_surfaces = [font.render(text, True, (255, 255, 255)) for font, text in
+                        [(static_fonts[i], static_texts[i]) for i in range(5)]]
+static_texts_rects = [surface.get_rect() for surface in static_texts_surfaces]
+for i in range(5):
+    static_texts_rects[i].center = (100 + i * 150, 20)
+
+
 while lives != 0:
     mario, level_x, level_y, final_flag = generate_level(load_level(cur_map))
+    static_numbers = [pygame.font.Font("../font/Mario_font.ttf", 35)] * 5
+
     count = 0
     ticks = 0
 
@@ -564,6 +572,16 @@ while lives != 0:
             died.draw(screen)
             enemies.draw(screen)
             heroes.draw(screen)
+
+            static_numbers_texts = [str(mario.score), str(mario.money), cur_map, str(500 - ticks // FPS),
+                                    str(cur_lives)]
+            static_numbers_surfaces = [font.render(text, True, (255, 255, 255)) for font, text in
+                                       [(static_numbers[i], static_numbers_texts[i]) for i in range(5)]]
+            static_numbers_rects = [surface.get_rect() for surface in static_numbers_surfaces]
+            for i in range(5):
+                static_numbers_rects[i].center = (100 + i * 150, 60)
+            [screen.blit(static_numbers_surfaces[i], static_numbers_rects[i]) for i in range(5)]
+            [screen.blit(static_texts_surfaces[i], static_texts_rects[i]) for i in range(5)]
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
