@@ -43,8 +43,8 @@ class Mario(pygame.sprite.Sprite):
                              pygame.image.load('small_mario_run2.png'),
                              pygame.image.load('small_mario_run3.png')]
     ANIMATION_SMALL_LEFT = [pygame.image.load('small_mario_run1_left.png'),
-                             pygame.image.load('small_mario_run2_left.png'),
-                             pygame.image.load('small_mario_run3_left.png')]
+                            pygame.image.load('small_mario_run2_left.png'),
+                            pygame.image.load('small_mario_run3_left.png')]
     ANIMATION_SMALL_JUMP_RIGHT = [pygame.image.load('small_mario_jump.png')]
     ANIMATION_SMALL_JUMP_LEFT = [pygame.image.load('small_mario_jump_left.png')]
     ANIMATION_SMALL_STAND_R = [pygame.image.load('small_mario_stand.png')]
@@ -63,8 +63,8 @@ class Mario(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(self.tile_width * self.pos_x,
                                                self.tile_height * self.pos_y)
 
-        # print(id(self.rect) == id(self.image.get_rect()))
         self.died = False
+        self.endgame = False
         self.left = False
 
         self.maygo_left = True
@@ -76,11 +76,10 @@ class Mario(pygame.sprite.Sprite):
         self.running_right = False
         self.jump = False
 
+        self.endtime = 0
         self.jump_time = 0
         self.speed_x = 0
         self.speed_y = 0
-        self.check_possible_moves_x()
-        self.check_possible_moves_y()
         self.on_ground = False
         self.a_y = 0
 
@@ -88,6 +87,14 @@ class Mario(pygame.sprite.Sprite):
         self.score = 0
 
     def move(self):
+        if self.endgame:
+            if ticks - self.endtime > 4 * FPS:
+                self.running_right = True
+                self.speed_x = MARIOSPEEDMAX // 2
+            else:
+                self.speed_x = 0
+            self.speed_y = max(self.speed_y, 0)
+
         self.rect.x += self.speed_x
         if self.rect.x < 0:
             self.rect.x = 0
@@ -101,6 +108,11 @@ class Mario(pygame.sprite.Sprite):
 
     def check_possible_moves_x(self):
         self.maygo_right, self.maygo_left = False, False
+
+        if self.rect.colliderect(final_flag):
+            self.endgame = True
+            self.endtime = ticks
+            return
 
         for sprite in surfaces2:
             if self.rect.colliderect(sprite.rect):
@@ -159,6 +171,7 @@ class Mario(pygame.sprite.Sprite):
                 mario.speed_x += BASE_ACC_X
             else:
                 mario.speed_x = MARIOSPEEDMAX
+
         if mario.jump and ticks - self.jump_time <= 0.20 * FPS:
             mario.speed_y = - MARIOJUMPSPEED
         else:
@@ -298,8 +311,8 @@ class DecorSprites(pygame.sprite.Sprite):
         self.pos_x, self.pos_y = x, y
         self.image1 = DecorSprites.sprites[image_type]
         self.image = pygame.transform.scale(self.image1,
-                                        (int(self.image1.get_width() * SCALE_D),
-                                        int(self.image1.get_height() * SCALE_D)))
+                                            (int(self.image1.get_width() * SCALE_D),
+                                             int(self.image1.get_height() * SCALE_D)))
         self.rect = self.image.get_rect().move(
             BLOCK_SIZE * self.pos_x,
             BLOCK_SIZE * self.pos_y - (self.image1.get_height() * SCALE_D - BLOCK_SIZE))
@@ -460,7 +473,7 @@ def generate_level(level):
                 elif level[y + 1][x] == '!' and level[y + 2][x] == '!':
                     AllBlocks('big_tube.png', x, y - 1, 32, 64)
             elif level[y][x] == 'k':
-                pass
+                final_flag = AllBlocks('block.png', x, y)
 
             elif level[y][x] == 'c':
                 DecorSprites(0, x, y)
@@ -476,7 +489,7 @@ def generate_level(level):
                 new_player = Mario(x, y, "Mario")
             elif level[y][x] == 'm':
                 Enemy(x, y)
-    return new_player, x, y
+    return new_player, x, y, final_flag
 
 
 def pause_func():
@@ -516,8 +529,20 @@ sky_color = (147, 147, 254)
 lives = 3
 cur_lives = 3
 cur_map = "map1.txt"
+
+static_fonts = [pygame.font.Font("../font/Mario_font.ttf", 40)] * 5
+static_texts = ["score", "coins", "map", "time", "lives"]
+static_texts_surfaces = [font.render(text, True, (255, 255, 255)) for font, text in
+                        [(static_fonts[i], static_texts[i]) for i in range(5)]]
+static_texts_rects = [surface.get_rect() for surface in static_texts_surfaces]
+for i in range(5):
+    static_texts_rects[i].center = (100 + i * 150, 20)
+
+
 while lives != 0:
-    mario, level_x, level_y = generate_level(load_level(cur_map))
+    mario, level_x, level_y, final_flag = generate_level(load_level(cur_map))
+    static_numbers = [pygame.font.Font("../font/Mario_font.ttf", 35)] * 5
+
     count = 0
     ticks = 0
 
@@ -547,6 +572,16 @@ while lives != 0:
             died.draw(screen)
             enemies.draw(screen)
             heroes.draw(screen)
+
+            static_numbers_texts = [str(mario.score), str(mario.money), cur_map, str(500 - ticks // FPS),
+                                    str(cur_lives)]
+            static_numbers_surfaces = [font.render(text, True, (255, 255, 255)) for font, text in
+                                       [(static_numbers[i], static_numbers_texts[i]) for i in range(5)]]
+            static_numbers_rects = [surface.get_rect() for surface in static_numbers_surfaces]
+            for i in range(5):
+                static_numbers_rects[i].center = (100 + i * 150, 60)
+            [screen.blit(static_numbers_surfaces[i], static_numbers_rects[i]) for i in range(5)]
+            [screen.blit(static_texts_surfaces[i], static_texts_rects[i]) for i in range(5)]
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
