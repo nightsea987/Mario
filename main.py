@@ -326,7 +326,12 @@ class Enemy(pygame.sprite.Sprite):
 
     def hitted(self, mario):
         mario.score += Enemy.score_value
-        sound_enemy_killed.play()
+        global enemy_killed
+        enemy_killed += 1
+        if enemy_killed % 2 == 1:
+            sound_enemy_killed.play()
+        else:
+            sound_enemy_killed2.play()
         self.is_alive = False
         global count
         count //= 4
@@ -500,6 +505,7 @@ sound_game_over = pygame.mixer.Sound('../sounds/Game_Over_classic.wav')
 sound_win = pygame.mixer.Sound('../sounds/mario_win.wav')
 
 this_list_is_necessary_for_camera = []
+enemy_killed = 0
 
 
 def generate_level(level):
@@ -558,6 +564,48 @@ def pause_func():
     pause = not pause
 
 
+def start_screen():
+    cur_choise = 0
+    maps = ["map1.txt", "map1_norm.txt", ""]
+    intro_text = ["WAKE THE duck UP, MARIO", "",
+                  "FIRST MAP",
+                  "SECOND MAP(yea, very interesting names)",
+                  "QUIT"]
+
+    fon = pygame.transform.scale(load_image('start_pic.png'), (WIDTH, HEIGHT))
+    font = pygame.font.Font("../font/Mario_font.ttf", 40)
+
+    while True:
+        screen.blit(fon, (0, 0))
+        text_coord = 100
+        for line in intro_text:
+            string_rendered = font.render(line, 1, pygame.Color('white'))
+            intro_rect = string_rendered.get_rect()
+            text_coord += 20
+            intro_rect.top = text_coord
+            intro_rect.x = 225
+            text_coord += intro_rect.height
+            screen.blit(string_rendered, intro_rect)
+        pygame.draw.circle(screen, (255, 255, 255), (200, 270 + cur_choise * 77), 15)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == 273:
+                    cur_choise = max(cur_choise - 1, 0)
+                elif event.key == 274:
+                    cur_choise = min(cur_choise + 1, 2)
+                elif event.key == 13:
+                    return maps[cur_choise]
+        pygame.display.flip()
+        clock.tick(FPS)
+
+cur_map = start_screen()
+if cur_map == "":
+    pygame.quit()
+    exit()
+
 camera = Camera()
 
 BASEMARIOSPEED = 110 * SCALE_D / FPS
@@ -575,7 +623,6 @@ game_over = pygame.image.load('game_over_pic.png')
 sky_color = (107, 140, 255)
 lives = 3
 cur_lives = 3
-cur_map = "map1.txt"
 
 static_fonts = [pygame.font.Font("../font/prstart.ttf", 25)] * 5
 static_texts = ["SCORE", "COINS", "MAP", "TIME", "LIVES"]
