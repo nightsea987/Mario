@@ -1,7 +1,7 @@
 import pygame
 import os
 
-os.chdir('../sprites')
+os.chdir('sprites')
 
 pygame.init()
 pygame.mixer.init()
@@ -120,7 +120,9 @@ class Mario(pygame.sprite.Sprite):
             self.jump = False
 
         elif self.endgame:
-            if ticks - self.endtime > 2.25 * FPS:
+            if ticks - self.endtime > 5 * FPS:
+                win()
+            elif ticks - self.endtime > 2.25 * FPS:
                 self.running_right = True
                 self.speed_x = int(MARIOSPEEDMAX / 1.5)
             else:
@@ -331,7 +333,7 @@ class Enemy(pygame.sprite.Sprite):
         if enemy_killed % 2 == 1:
             sound_enemy_killed.play()
         else:
-            sound_enemy_killed2.play()
+            sound_enemy_killed.play()
         self.is_alive = False
         global count
         count //= 4
@@ -601,6 +603,21 @@ def start_screen():
         pygame.display.flip()
         clock.tick(FPS)
 
+
+def win():
+    image = pygame.transform.scale(load_image("win.png"), (WIDTH, HEIGHT))
+    for i in range(9 * FPS):
+        screen.blit(image, (0, 0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+        pygame.display.flip()
+        clock.tick(FPS)
+    pygame.quit()
+    exit()
+
+
 cur_map = start_screen()
 if cur_map == "":
     pygame.quit()
@@ -647,6 +664,8 @@ while lives != 0:
     pause = False
     while running and cur_lives == lives:
         if not pause:
+            if 400 - ticks // FPS < 1 and not mario.died:
+                mario.hitted()
             if mario.died:
                 if ticks - mario.die_time < 300:
                     if ticks - mario.die_time < 30:

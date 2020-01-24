@@ -1,13 +1,14 @@
 import pygame
 import os
 
-os.chdir('../sprites')
+os.chdir('sprites')
 
 pygame.init()
 pygame.mixer.init()
 
 size = WIDTH, HEIGHT = 800, 630
 TILE_WIDTH, TILE_HEIGHT = 16, 16
+
 
 clock = pygame.time.Clock()
 FPS = 60
@@ -120,6 +121,8 @@ class Mario(pygame.sprite.Sprite):
             self.jump = False
 
         elif self.endgame:
+            if ticks - self.endtime > 5 * FPS:
+                win()
             if ticks - self.endtime > 2.25 * FPS:
                 self.running_right = True
                 self.speed_x = int(MARIOSPEEDMAX / 1.5)
@@ -604,6 +607,20 @@ def start_screen():
         pygame.display.flip()
         clock.tick(FPS)
 
+
+def win():
+    image = pygame.transform.scale(load_image("win.png"), (WIDTH, HEIGHT))
+    for i in range(9 * FPS):
+        screen.blit(image, (0, 0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+        pygame.display.flip()
+        clock.tick(FPS)
+    pygame.quit()
+    exit()
+
 cur_map = start_screen()
 if cur_map == "":
     pygame.quit()
@@ -650,6 +667,8 @@ while lives != 0:
     pause = False
     while running and cur_lives == lives:
         if not pause:
+            if 400 - ticks // FPS < 1 and not mario.died:
+                mario.hitted()
             if mario.died:
                 if ticks - mario.die_time < 300:
                     if ticks - mario.die_time < 30:
