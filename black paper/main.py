@@ -11,6 +11,19 @@ size = WIDTH, HEIGHT = 800, 630
 TILE_WIDTH, TILE_HEIGHT = 16, 16
 ANIMATION_DELAY = 1
 
+clock = pygame.time.Clock()
+FPS = 60
+SCALE_D = 2.5
+BLOCK_SIZE = 16 * SCALE_D
+
+surfaces2 = pygame.sprite.Group()
+heroes = pygame.sprite.Group()
+decoration = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
+died = pygame.sprite.Group()
+castlesprite = pygame.sprite.Group()
+all_groups = [decoration, surfaces2, heroes, enemies, died, castlesprite]
+
 screen = pygame.display.set_mode(size)
 
 
@@ -50,6 +63,8 @@ class Mario(pygame.sprite.Sprite):
     ANIMATION_SMALL_STAND_R = [pygame.image.load('small_mario_stand.png')]
     ANIMATION_SMALL_STAND_L = [pygame.image.load('small_mario_stand_l.png')]
     ANIMATION_SMALL_DEAD = [pygame.image.load('small_mario_dead.png')]
+    ANIMATION_SMALL_WIN = [pygame.image.load('small_mario_win1.png'),
+                           pygame.image.load('small_mario_win2.png')]
 
     def __init__(self, x, y, image_name, w=15, h=16):
         super().__init__(heroes)
@@ -86,6 +101,7 @@ class Mario(pygame.sprite.Sprite):
 
         self.money = 0
         self.score = 0
+        self.mask = pygame.mask.from_surface(self.image)
 
     def move(self):
         if self.died:
@@ -101,6 +117,7 @@ class Mario(pygame.sprite.Sprite):
             self.jump = False
 
         elif self.endgame:
+            # print(self.speed_x, ticks - self.endtime, self.endtime, ticks - self.endtime > 4 * FPS)
             if ticks - self.endtime > 4 * FPS:
                 self.running_right = True
                 self.speed_x = MARIOSPEEDMAX // 2
@@ -122,7 +139,7 @@ class Mario(pygame.sprite.Sprite):
     def check_possible_moves_x(self):
         self.maygo_right, self.maygo_left = False, False
 
-        if self.rect.colliderect(final_flag):
+        if pygame.sprite.collide_mask(self, final_flag) and not self.endgame:
             self.endgame = True
             self.endtime = ticks
             return
@@ -201,7 +218,7 @@ class Mario(pygame.sprite.Sprite):
                 Mario.ANIMATION_SMALL_DEAD[0], (0, 0))
         else:
             if self.running_right and self.jump is False:
-                self.image.fill(sky_color)
+                # self.image.fill(sky_color)
                 self.image.blit(Mario.ANIMATION_SMALL_RIGHT[self.anim_count // 20], (0, 0))
             if not self.running_right and not self.running_left and not self.jump:
                 if self.left:
@@ -217,7 +234,6 @@ class Mario(pygame.sprite.Sprite):
                 if not self.left:
                     self.image.blit(
                         Mario.ANIMATION_SMALL_JUMP_RIGHT[0], (0, 0))
-            # if self.ru
         self.anim_count += 1
 
     def hitted(self):
@@ -239,7 +255,7 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y, w=16, h=16):
         super().__init__(enemies)
         self.anim_count = 0
-        self.image = pygame.transform.scale(Enemy.ANIMATION_MUSH_RUN[0],
+        self.image = pygame.transform.scale(load_image('mush1.png', -1),
                                             (int(w * SCALE_D), int(h * SCALE_D)))
 
         self.tile_width, self.tile_height = TILE_WIDTH * SCALE_D, TILE_HEIGHT * SCALE_D
@@ -258,7 +274,7 @@ class Enemy(pygame.sprite.Sprite):
             self.anim_count = 0
 
         if self.is_alive:
-            self.image.fill(sky_color)
+            # self.image.fill(sky_color)
             self.image.blit(Enemy.ANIMATION_MUSH_RUN[self.anim_count // 3 % 2], (0, 0))
 
             if abs(self.rect.x - mario.rect.x) < BLOCK_SIZE * 14:
@@ -271,15 +287,12 @@ class Enemy(pygame.sprite.Sprite):
                 self.collide_y()
 
         else:
-            self.image.fill(sky_color)
             self.image.blit(Enemy.ANIMATION_MUSH_DIE[0], (0, 0))
-            # print('a')
             died.add(self)
             global count
             count //= 90
             count *= 90
             count += 1
-            # enemies.remove(self)
             self.remove(enemies)
         self.anim_count += 1
 
@@ -301,7 +314,12 @@ class Enemy(pygame.sprite.Sprite):
 
     def hitted(self, mario):
         mario.score += Enemy.score_value
-        sound_enemy_killed.play()
+        global enemy_killed
+        enemy_killed += 1
+        if enemy_killed % 2 == 1:
+            sound_enemy_killed.play()
+        else:
+            sound_enemy_killed2.play()
         self.is_alive = False
         global count
         count //= 4
@@ -309,15 +327,20 @@ class Enemy(pygame.sprite.Sprite):
 
 
 class DecorSprites(pygame.sprite.Sprite):
+    global decoration
     sprites = [load_image('small_cloud.png'),
                load_image('small_grass.png', -1),
                load_image('big_grass.png', -1),
                load_image('light_big_grass.png', -1),
                load_image('light_small_grass.png', -1),
-               load_image('light_middle_grass.png', -1)]
+               load_image('light_middle_grass.png', -1),
+               load_image('castle1.png', -1),
+               load_image('castle2.png'),
+               load_image('flag1.png', -1),
+               load_image('flag2.png', -1)]
 
-    def __init__(self, image_type, x, y):
-        super().__init__(decoration)
+    def __init__(self, image_type, x, y, group=decoration, is_flag=None):
+        super().__init__(group)
 
         self.pos_x, self.pos_y = x, y
         self.image1 = DecorSprites.sprites[image_type]
@@ -327,6 +350,8 @@ class DecorSprites(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(
             BLOCK_SIZE * self.pos_x,
             BLOCK_SIZE * self.pos_y - (self.image1.get_height() * SCALE_D - BLOCK_SIZE))
+        if is_flag:
+            self.mask = pygame.mask.from_surface(self.image)
 
 
 class AllBlocks(pygame.sprite.Sprite):
@@ -347,7 +372,6 @@ class AllBlocks(pygame.sprite.Sprite):
         self.rect.y -= 4
         count //= 10
         count *= 10
-        print("Oh fuck.. I cant believe you done this")
 
 
 class QBlock(pygame.sprite.Sprite):
@@ -408,7 +432,7 @@ class Coins(pygame.sprite.Sprite):
         self.image = load_image(Coins.ANIMATION_COIN[0], -1)
 
         self.pos_x, self.pos_y = x, y
-        self.rect = self.image.get_rect().move(self.pos_x, self.pos_y)
+        self.rect = self.image.get_rect().move(self.pos_x + 4, self.pos_y)
         # print(self.pos_x, self.pos_y)
         # print(self.rect.x, self.rect.y)
         print(decoration)
@@ -453,7 +477,21 @@ class Camera:
             self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 2)
 
 
+# --------------------------SOUNDS-------------------------------------
+pygame.mixer.music.load('../sounds/main_theme.mp3')
+sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
+sound_smallM_hit_block = pygame.mixer.Sound('../sounds/Bump.wav')
+sound_hit_qblock = pygame.mixer.Sound('../sounds/Coin.wav')
+sound_enemy_killed = pygame.mixer.Sound('../sounds/ta.wav')
+sound_enemy_killed.set_volume(0.3)
+sound_enemy_killed2 = pygame.mixer.Sound('../sounds/sha.wav')
+sound_enemy_killed2.set_volume(0.3)
+sound_die = pygame.mixer.Sound('../sounds/Die.wav')
+sound_pause = pygame.mixer.Sound('../sounds/Pause.wav')
+sound_game_over = pygame.mixer.Sound('../sounds/Game Over.wav')
+
 this_list_is_necessary_for_camera = []
+enemy_killed = 0
 
 
 def generate_level(level):
@@ -475,8 +513,18 @@ def generate_level(level):
                     AllBlocks('small_tube.png', x, y - 1, 32, 32)
                 elif level[y + 1][x] == '!' and level[y + 2][x] == '!':
                     AllBlocks('big_tube.png', x, y - 1, 32, 64)
-            elif level[y][x] == 'k':
-                final_flag = AllBlocks('block.png', x, y)
+            # elif level[y][x] == 'k':
+            #     final_flag = AllBlocks('stair_block.png', x, y)
+            elif level[y][x] == '1':
+                final_flag = DecorSprites(9, x, y, is_flag=True)
+            elif level[y][x] == '2':
+                DecorSprites(8, x, y)
+            elif level[y][x] == '3':
+                DecorSprites(6, x, y)
+            elif level[y][x] == '4':
+                DecorSprites(7, x, y, castlesprite)
+            elif level[y][x] == 'e':
+                AllBlocks('empty.png', x, y)
 
             elif level[y][x] == 'c':
                 DecorSprites(0, x, y)
@@ -498,26 +546,53 @@ def generate_level(level):
 def pause_func():
     global pause
     sound_pause.play()
+    pygame.mixer.music.pause()
     pause = not pause
 
 
-clock = pygame.time.Clock()
-FPS = 60
-SCALE_D = 2.5
+def start_screen():
+    cur_choise = 0
+    maps = ["map1.txt", "map1_norm.txt", ""]
+    intro_text = ["WAKE THE duck UP, MARIO", "",
+                  "FIRST MAP",
+                  "SECOND MAP(yea, very interesting names)",
+                  "QUIT"]
 
-BLOCK_SIZE = 16 * SCALE_D
+    fon = pygame.transform.scale(load_image('start_pic.png'), (WIDTH, HEIGHT))
+    font = pygame.font.Font("../font/Mario_font.ttf", 40)
 
-surfaces2 = pygame.sprite.Group()
-heroes = pygame.sprite.Group()
-decoration = pygame.sprite.Group()
-enemies = pygame.sprite.Group()
-died = pygame.sprite.Group()
-all_groups = [decoration, surfaces2, heroes, enemies, died]
-game_over = pygame.image.load('game_over_pic.png')
+    while True:
+        screen.blit(fon, (0, 0))
+        text_coord = 100
+        for line in intro_text:
+            string_rendered = font.render(line, 1, pygame.Color('white'))
+            intro_rect = string_rendered.get_rect()
+            text_coord += 20
+            intro_rect.top = text_coord
+            intro_rect.x = 225
+            text_coord += intro_rect.height
+            screen.blit(string_rendered, intro_rect)
+        pygame.draw.circle(screen, (255, 255, 255), (200, 270 + cur_choise * 77), 15)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == 273:
+                    cur_choise = max(cur_choise - 1, 0)
+                elif event.key == 274:
+                    cur_choise = min(cur_choise + 1, 2)
+                elif event.key == 13:
+                    return maps[cur_choise]
+        pygame.display.flip()
+        clock.tick(FPS)
+
+cur_map = start_screen()
+if cur_map == "":
+    pygame.quit()
+    exit()
 
 camera = Camera()
-# camera.update(mario)
-
 
 BASEMARIOSPEED = 110 * SCALE_D / FPS
 MARIOSTARTSPEED = 20 * SCALE_D / FPS
@@ -528,10 +603,10 @@ BASE_ACC_X = 5 * SCALE_D / FPS
 BASE_ACC_Y_DOWN = 40 / FPS
 STOP_ACC_X = 30 * SCALE_D / FPS
 
+game_over = pygame.image.load('game_over.jpg')
 sky_color = (107, 140, 255)
 lives = 3
 cur_lives = 3
-cur_map = "map1.txt"
 
 static_fonts = [pygame.font.Font("../font/prstart.ttf", 25)] * 5
 static_texts = ["SCORE", "COINS", "MAP", "TIME", "LIVES"]
@@ -542,16 +617,9 @@ for i in range(5):
     static_texts_rects[i].center = (100 + i * 150, 17)
 
 while lives != 0:
-    # --------------------------SOUNDS-------------------------------------
-    pygame.mixer.music.load('../sounds/main_theme.mp3')
-    pygame.mixer.music.play()
-    sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
-    sound_smallM_hit_block = pygame.mixer.Sound('../sounds/Bump.wav')
-    sound_hit_qblock = pygame.mixer.Sound('../sounds/Coin.wav')
-    sound_enemy_killed = pygame.mixer.Sound('../sounds/Kick.wav')
-    sound_die = pygame.mixer.Sound('../sounds/Die.wav')
-    sound_pause = pygame.mixer.Sound('../sounds/Pause.wav')
-    sound_game_over = pygame.mixer.Sound('../sounds/Game Over.wav')
+    # pygame.mixer.music.play()
+    # pygame.mixer.music.set_volume(0.7)
+    # pygame.mixer.music.play(2)
 
     mario, level_x, level_y, final_flag = generate_level(load_level(cur_map))
     static_numbers = [pygame.font.Font("../font/prstart.ttf", 23)] * 5
@@ -599,8 +667,9 @@ while lives != 0:
             died.draw(screen)
             enemies.draw(screen)
             heroes.draw(screen)
+            castlesprite.draw(screen)
 
-            static_numbers_texts = [str(mario.score), str(mario.money), cur_map, str(400 - ticks // FPS),
+            static_numbers_texts = [str(mario.score), str(mario.money), cur_map, str(400 - ticks // (FPS // 2)),
                                     str(cur_lives)]
             static_numbers_surfaces = [font.render(text, True, (255, 255, 255)) for font, text in
                                        [(static_numbers[i], static_numbers_texts[i]) for i in range(5)]]
@@ -616,17 +685,18 @@ while lives != 0:
             elif event.type == pygame.KEYDOWN:
                 if event.key in [pygame.K_ESCAPE, pygame.K_p]:
                     pause_func()
+                    if not pause:
+                        pygame.mixer.music.unpause()
                 if event.key == 276:
                     # mario.speed_x = - BASEMARIOSPEED
                     mario.left = True
-
                     mario.running_left = True
                 elif event.key == 275:
                     # mario.speed_x = BASEMARIOSPEED
                     mario.left = False
                     mario.running_right = True
                 elif event.key == 273 and mario.speed_y == 1:
-                    if not mario.endgame and not mario.died:
+                    if not pause and not mario.died:
                         sound_jump.play()
                     # mario.speed_y = - MARIOJUMPSPEED
                     mario.jump = True
@@ -654,22 +724,23 @@ while lives != 0:
             if count % 90 == 0:
                 died.remove(*died)
             heroes.update()
+            castlesprite.update()
             pygame.display.flip()
 
             ticks += 1
         clock.tick(FPS)
-
     for group in all_groups:
         group.empty()
     lives -= 1
+
 if cur_lives == 0:
     sound_die.stop()
     sound_game_over.play()
-    for _ in range(567):
-        for event in pygame.event.get():
-            if event == pygame.QUIT:
-                pygame.quit()
-                exit()
+    for _ in range(1300):
         screen.blit(game_over, (0, 0))
         pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
 pygame.quit()
