@@ -664,7 +664,7 @@ while lives != 0:
     pause = False
     while running and cur_lives == lives:
         if not pause:
-            if 400 - ticks // FPS < 1 and not mario.died:
+            if 400 - ticks // (FPS // 2) < 1 and not mario.died:
                 mario.hitted()
             if mario.died:
                 if ticks - mario.die_time < 300:
