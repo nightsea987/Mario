@@ -498,11 +498,14 @@ pygame.mixer.music.load('../sounds/main_theme.mp3')
 sound_jump = pygame.mixer.Sound('../sounds/Jump.wav')
 sound_smallM_hit_block = pygame.mixer.Sound('../sounds/Bump.wav')
 sound_hit_qblock = pygame.mixer.Sound('../sounds/Coin.wav')
-sound_enemy_killed = pygame.mixer.Sound('../sounds/Kick.wav')
+sound_enemy_killed = pygame.mixer.Sound('../sounds/ta.wav')
+sound_enemy_killed.set_volume(0.3)
+sound_enemy_killed2 = pygame.mixer.Sound('../sounds/sha.wav')
+sound_enemy_killed2.set_volume(0.3)
 sound_die = pygame.mixer.Sound('../sounds/Die.wav')
 sound_pause = pygame.mixer.Sound('../sounds/Pause.wav')
-sound_game_over = pygame.mixer.Sound('../sounds/Game_Over_classic.wav')
-sound_win = pygame.mixer.Sound('../sounds/mario_win.wav')
+sound_game_over = pygame.mixer.Sound('../sounds/Game Over.wav')
+sound_win = pygame.mixer.Sound('../sounds/mario_win_mem.wav')
 
 this_list_is_necessary_for_camera = []
 enemy_killed = 0
